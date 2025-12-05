@@ -389,6 +389,11 @@ PlatformBootManagerWaitCallback (UINT16 TimeoutRemain)
   // Get Timeout Time
   UINT16 Timeout = PcdGet16 (PcdPlatformBootTimeOut);
 
+  // Hack to clear buttons states / boot requests
+  if (TimeoutRemain == Timeout) {
+    MsBootPolicyLibClearBootRequests ();
+  }
+
   // Locate GOP Protocol
   if (!mGopProtocol) {
     Status = gBS->LocateProtocol (&gEfiGraphicsOutputProtocolGuid, NULL, (VOID *)&mGopProtocol);
