@@ -11,6 +11,24 @@ DummyNotify (
   // Dummy Function Needed for Event Notification Callback
 }
 
+STATIC
+VOID
+UsbInitDoneCb (
+  IN EFI_EVENT Event,
+  IN VOID     *Context) 
+{
+  // EFI_STATUS Status;
+  // EFI_EVENT  ToggleEvent;
+  // DEBUG ((EFI_D_WARN, "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
+  // Status = gBS->CreateEventEx (EVT_NOTIFY_SIGNAL, TPL_CALLBACK, DummyNotify, NULL, &gEfiEventToggleUsbModeGuid, &ToggleEvent);
+  // if (EFI_ERROR (Status)) {
+  //   DEBUG ((EFI_D_ERROR, "Failed to Create USB Mode Toggle Event! Status = %r\n", Status));
+  // } else {
+  //   gBS->SignalEvent (ToggleEvent);
+  //   gBS->CloseEvent  (ToggleEvent);
+  // }
+}
+
 EFI_STATUS
 EFIAPI
 InitPeripherals (
@@ -21,7 +39,7 @@ InitPeripherals (
   EFI_EVENT  InitEvent;
 
   // Start the USB Port Controller
-  Status = gBS->CreateEventEx (EVT_NOTIFY_SIGNAL, TPL_CALLBACK, DummyNotify, NULL, &gUsbControllerInitGuid, &InitEvent);
+  Status = gBS->CreateEventEx (EVT_NOTIFY_SIGNAL, TPL_CALLBACK, UsbInitDoneCb, NULL, &gUsbControllerInitGuid, &InitEvent);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Create USB Port Controller Start Event! Status = %r\n", Status));
   } else {
