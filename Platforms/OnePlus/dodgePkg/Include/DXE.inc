@@ -83,6 +83,8 @@
   INF Binaries/dodge/QcomPkg/Drivers/SdccDxe/SdccDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/FeatureEnablerDxe/FeatureEnablerDxe.inf
 
+  INF QcomPkg/Drivers/SPIIRConDxe/SPIIRConDxe.inf
+
 !if $(USE_CUSTOM_DISPLAY_DRIVER) == 1
   INF Binaries/dodge/QcomPkg/Drivers/DisplayDxe/DisplayDxe.inf
 !else

@@ -90,6 +90,8 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
 
   INF Binaries/dodge/QcomPkg/Drivers/SPIDxe/SPIDxe.inf
+  INF QcomPkg/Drivers/SPIIRConDxe/SPIIRConDxe.inf
+
   INF Binaries/dodge/QcomPkg/Drivers/HSUartDxe/HSUartDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PmicGlinkDxe/PmicGlinkDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/UsbPwrCtrlDxe/UsbPwrCtrlDxe.inf

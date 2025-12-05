@@ -1,0 +1,25 @@
+[Defines]
+  INF_VERSION                    = 0x0010005
+  BASE_NAME                      = SPIIRConDxe
+  FILE_GUID                      = 93914739-85A4-4620-8260-682BE69F711B
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = SPIIRConDxeInit
+
+[Sources]
+  SPIIRConDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  QcomPkg/QcomPkg.dec
+
+[LibraryClasses]
+  DebugLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+
+[Protocols]
+  gQcomSPIProtocolGuid
+
+[Depex]
+  TRUE
