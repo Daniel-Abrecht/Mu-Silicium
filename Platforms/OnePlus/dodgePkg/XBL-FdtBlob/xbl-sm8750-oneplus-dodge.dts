@@ -504,67 +504,67 @@
 			qcom,sleep-config = <0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x18a 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x149 0x149 0x149 0x149 0x45 0x45 0x45 0x14a 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x151 0x151 0x145 0x151 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x145 0x145 0x45 0x45 0x151 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x151 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x18a 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x51 0x45 0x45 0x45 0x51 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45 0x45>;
 			phandle = <0xd3>;
 
-			qup2_se0_l0 {
+			qup2_se0_l0: qup2_se0_l0 {
 				mux = <0x00 0x01>;
 				phandle = <0x36>;
 			};
 
-			qup2_se0_l1 {
+			qup2_se0_l1: qup2_se0_l1 {
 				mux = <0x01 0x01>;
 				phandle = <0x37>;
 			};
 
-			qup2_se0_l2 {
+			qup2_se0_l2: qup2_se0_l2 {
 				mux = <0x02 0x01>;
 				phandle = <0x38>;
 			};
 
-			qup2_se0_l3 {
+			qup2_se0_l3: qup2_se0_l3 {
 				mux = <0x03 0x01>;
 				phandle = <0x39>;
 			};
 
-			qup2_se1_l0 {
+			qup2_se1_l0: qup2_se1_l0 {
 				mux = <0x04 0x01>;
 				phandle = <0x3a>;
 			};
 
-			qup2_se1_l1 {
+			qup2_se1_l1: qup2_se1_l1 {
 				mux = <0x05 0x01>;
 				phandle = <0x3b>;
 			};
 
-			qup2_se1_l2 {
+			qup2_se1_l2: qup2_se1_l2 {
 				mux = <0x06 0x01>;
 				phandle = <0x3c>;
 			};
 
-			qup2_se1_l3 {
+			qup2_se1_l3: qup2_se1_l3 {
 				mux = <0x07 0x01>;
 				phandle = <0x3d>;
 			};
 
-			qup2_se2_l0 {
+			qup2_se2_l0: qup2_se2_l0 {
 				mux = <0x08 0x01>;
 				phandle = <0x3e>;
 			};
 
-			qup2_se2_l1 {
+			qup2_se2_l1: qup2_se2_l1 {
 				mux = <0x09 0x01>;
 				phandle = <0x3f>;
 			};
 
-			qup2_se2_l2 {
+			qup2_se2_l2: qup2_se2_l2 {
 				mux = <0x0a 0x01>;
 				phandle = <0x40>;
 			};
 
-			qup2_se2_l3 {
+			qup2_se2_l3: qup2_se2_l3 {
 				mux = <0x0b 0x01>;
 				phandle = <0x41>;
 			};
 
-			qup2_se3_l0 {
+			qup2_se3_l0: qup2_se3_l0 {
 				mux = <0x0c 0x01>;
 				phandle = <0x42>;
 			};
@@ -574,7 +574,7 @@
 				phandle = <0xd4>;
 			};
 
-			qup2_se3_l1 {
+			qup2_se3_l1: qup2_se3_l1 {
 				mux = <0x0d 0x01>;
 				phandle = <0x43>;
 			};
@@ -584,12 +584,12 @@
 				phandle = <0xd5>;
 			};
 
-			qup2_se3_l2 {
+			qup2_se3_l2: qup2_se3_l2 {
 				mux = <0x0e 0x01>;
 				phandle = <0x44>;
 			};
 
-			qup2_se3_l3 {
+			qup2_se3_l3: qup2_se3_l3 {
 				mux = <0x0f 0x01>;
 				phandle = <0x45>;
 			};
@@ -599,42 +599,42 @@
 				phandle = <0xd6>;
 			};
 
-			qup2_se4_l0 {
+			qup2_se4_l0: qup2_se4_l0 {
 				mux = <0x10 0x01>;
 				phandle = <0x46>;
 			};
 
-			qup2_se4_l1 {
+			qup2_se4_l1: qup2_se4_l1 {
 				mux = <0x11 0x01>;
 				phandle = <0x47>;
 			};
 
-			qup2_se4_l2 {
+			qup2_se4_l2: qup2_se4_l2 {
 				mux = <0x12 0x02>;
 				phandle = <0x48>;
 			};
 
-			qup2_se4_l3 {
+			qup2_se4_l3: qup2_se4_l3 {
 				mux = <0x13 0x02>;
 				phandle = <0x49>;
 			};
 
-			qup2_se5_l0 {
+			qup2_se5_l0: qup2_se5_l0 {
 				mux = <0x14 0x01>;
 				phandle = <0x4a>;
 			};
 
-			qup2_se5_l1 {
+			qup2_se5_l1: qup2_se5_l1 {
 				mux = <0x15 0x01>;
 				phandle = <0x4b>;
 			};
 
-			qup2_se5_l2 {
+			qup2_se5_l2: qup2_se5_l2 {
 				mux = <0x16 0x01>;
 				phandle = <0x4c>;
 			};
 
-			qup2_se5_l3 {
+			qup2_se5_l3: qup2_se5_l3 {
 				mux = <0x17 0x01>;
 				phandle = <0x4d>;
 			};
@@ -644,292 +644,292 @@
 				phandle = <0xd7>;
 			};
 
-			qup2_se6_l0 {
+			qup2_se6_l0: qup2_se6_l0 {
 				mux = <0x18 0x01>;
 				phandle = <0x4e>;
 			};
 
-			qup2_se6_l1 {
+			qup2_se6_l1: qup2_se6_l1 {
 				mux = <0x19 0x01>;
 				phandle = <0x4f>;
 			};
 
-			qup2_se6_l2 {
+			qup2_se6_l2: qup2_se6_l2 {
 				mux = <0x1a 0x01>;
 				phandle = <0x50>;
 			};
 
-			qup2_se6_l3 {
+			qup2_se6_l3: qup2_se6_l3 {
 				mux = <0x1b 0x01>;
 				phandle = <0x51>;
 			};
 
-			qup2_se7_l0 {
+			qup2_se7_l0: qup2_se7_l0 {
 				mux = <0x1c 0x01>;
 				phandle = <0x52>;
 			};
 
-			qup2_se7_l1 {
+			qup2_se7_l1: qup2_se7_l1 {
 				mux = <0x1d 0x01>;
 				phandle = <0x53>;
 			};
 
-			qup2_se7_l2 {
+			qup2_se7_l2: qup2_se7_l2 {
 				mux = <0x1e 0x01>;
 				phandle = <0x54>;
 			};
 
-			qup2_se7_l3 {
+			qup2_se7_l3: qup2_se7_l3 {
 				mux = <0x1f 0x01>;
 				phandle = <0x55>;
 			};
 
-			qup1_se0_l0 {
+			qup1_se0_l0: qup1_se0_l0 {
 				mux = <0x20 0x01>;
 				phandle = <0x16>;
 			};
 
-			qup1_se0_l1 {
+			qup1_se0_l1: qup1_se0_l1 {
 				mux = <0x21 0x01>;
 				phandle = <0x17>;
 			};
 
-			qup1_se0_l2 {
+			qup1_se0_l2: qup1_se0_l2 {
 				mux = <0x22 0x01>;
 				phandle = <0x18>;
 			};
 
-			qup1_se0_l3 {
+			qup1_se0_l3: qup1_se0_l3 {
 				mux = <0x23 0x01>;
 				phandle = <0x19>;
 			};
 
-			qup1_se1_l0 {
+			qup1_se1_l0: qup1_se1_l0 {
 				mux = <0x24 0x01>;
 				phandle = <0x1a>;
 			};
 
-			qup1_se1_l1 {
+			qup1_se1_l1: qup1_se1_l1 {
 				mux = <0x25 0x01>;
 				phandle = <0x1b>;
 			};
 
-			qup1_se1_l2 {
+			qup1_se1_l2: qup1_se1_l2 {
 				mux = <0x26 0x01>;
 				phandle = <0x1c>;
 			};
 
-			qup1_se1_l3 {
+			qup1_se1_l3: qup1_se1_l3 {
 				mux = <0x27 0x01>;
 				phandle = <0x1d>;
 			};
 
-			qup1_se2_l0 {
+			qup1_se2_l0: qup1_se2_l0 {
 				mux = <0x28 0x01>;
 				phandle = <0x1e>;
 			};
 
-			qup1_se2_l1 {
+			qup1_se2_l1: qup1_se2_l1 {
 				mux = <0x29 0x01>;
 				phandle = <0x1f>;
 			};
 
-			qup1_se2_l2 {
+			qup1_se2_l2: qup1_se2_l2 {
 				mux = <0x2a 0x01>;
 				phandle = <0x20>;
 			};
 
-			qup1_se2_l3 {
+			qup1_se2_l3: qup1_se2_l3 {
 				mux = <0x2b 0x01>;
 				phandle = <0x21>;
 			};
 
-			qup1_se3_l0 {
+			qup1_se3_l0: qup1_se3_l0 {
 				mux = <0x2c 0x01>;
 				phandle = <0x22>;
 			};
 
-			qup1_se3_l1 {
+			qup1_se3_l1: qup1_se3_l1 {
 				mux = <0x2d 0x01>;
 				phandle = <0x23>;
 			};
 
-			qup1_se3_l2 {
+			qup1_se3_l2: qup1_se3_l2 {
 				mux = <0x2e 0x01>;
 				phandle = <0x24>;
 			};
 
-			qup1_se3_l3 {
+			qup1_se3_l3: qup1_se3_l3 {
 				mux = <0x2f 0x01>;
 				phandle = <0x25>;
 			};
 
-			qup1_se4_l0 {
+			qup1_se4_l0: qup1_se4_l0 {
 				mux = <0x30 0x01>;
 				phandle = <0x26>;
 			};
 
-			qup1_se4_l1 {
+			qup1_se4_l1: qup1_se4_l1 {
 				mux = <0x31 0x01>;
 				phandle = <0x27>;
 			};
 
-			qup1_se4_l2 {
+			qup1_se4_l2: qup1_se4_l2 {
 				mux = <0x32 0x01>;
 				phandle = <0x28>;
 			};
 
-			qup1_se4_l3 {
+			qup1_se4_l3: qup1_se4_l3 {
 				mux = <0x33 0x01>;
 				phandle = <0x29>;
 			};
 
-			qup1_se5_l0 {
+			qup1_se5_l0: qup1_se5_l0 {
 				mux = <0x34 0x01>;
 				phandle = <0x2a>;
 			};
 
-			qup1_se5_l1 {
+			qup1_se5_l1: qup1_se5_l1 {
 				mux = <0x35 0x01>;
 				phandle = <0x2b>;
 			};
 
-			qup1_se5_l2 {
+			qup1_se5_l2: qup1_se5_l2 {
 				mux = <0x36 0x01>;
 				phandle = <0x2c>;
 			};
 
-			qup1_se5_l3 {
+			qup1_se5_l3: qup1_se5_l3 {
 				mux = <0x37 0x01>;
 				phandle = <0x2d>;
 			};
 
-			qup1_se6_l0 {
+			qup1_se6_l0: qup1_se6_l0 {
 				mux = <0x38 0x01>;
 				phandle = <0x2e>;
 			};
 
-			qup1_se6_l1 {
+			qup1_se6_l1: qup1_se6_l1 {
 				mux = <0x39 0x01>;
 				phandle = <0x2f>;
 			};
 
-			qup1_se6_l2 {
+			qup1_se6_l2: qup1_se6_l2 {
 				mux = <0x3a 0x01>;
 				phandle = <0x30>;
 			};
 
-			qup1_se6_l3 {
+			qup1_se6_l3: qup1_se6_l3 {
 				mux = <0x3b 0x01>;
 				phandle = <0x31>;
 			};
 
-			qup1_se7_l0 {
+			qup1_se7_l0: qup1_se7_l0 {
 				mux = <0x3c 0x01>;
 				phandle = <0x32>;
 			};
 
-			qup1_se7_l1 {
+			qup1_se7_l1: qup1_se7_l1 {
 				mux = <0x3d 0x01>;
 				phandle = <0x33>;
 			};
 
-			qup1_se7_l2 {
+			qup1_se7_l2: qup1_se7_l2 {
 				mux = <0x3e 0x01>;
 				phandle = <0x34>;
 			};
 
-			qup1_se7_l3 {
+			qup1_se7_l3: qup1_se7_l3 {
 				mux = <0x3f 0x01>;
 				phandle = <0x35>;
 			};
 
-			i2chub0_se0_l0 {
+			i2chub0_se0_l0: i2chub0_se0_l0 {
 				mux = <0x40 0x01>;
 				phandle = <0x02>;
 			};
 
-			i2chub0_se0_l1 {
+			i2chub0_se0_l1: i2chub0_se0_l1 {
 				mux = <0x41 0x01>;
 				phandle = <0x03>;
 			};
 
-			i2chub0_se1_l0 {
+			i2chub0_se1_l0: i2chub0_se1_l0 {
 				mux = <0x42 0x01>;
 				phandle = <0x04>;
 			};
 
-			i2chub0_se1_l1 {
+			i2chub0_se1_l1: i2chub0_se1_l1 {
 				mux = <0x43 0x01>;
 				phandle = <0x05>;
 			};
 
-			i2chub0_se2_l0 {
+			i2chub0_se2_l0: i2chub0_se2_l0 {
 				mux = <0x44 0x01>;
 				phandle = <0x06>;
 			};
 
-			i2chub0_se2_l1 {
+			i2chub0_se2_l1: i2chub0_se2_l1 {
 				mux = <0x45 0x01>;
 				phandle = <0x07>;
 			};
 
-			i2chub0_se3_l0 {
+			i2chub0_se3_l0: i2chub0_se3_l0 {
 				mux = <0x46 0x01>;
 				phandle = <0x08>;
 			};
 
-			i2chub0_se3_l1 {
+			i2chub0_se3_l1: i2chub0_se3_l1 {
 				mux = <0x47 0x01>;
 				phandle = <0x09>;
 			};
 
-			i2chub0_se4_l0 {
+			i2chub0_se4_l0: i2chub0_se4_l0 {
 				mux = <0x48 0x01>;
 				phandle = <0x0a>;
 			};
 
-			i2chub0_se4_l1 {
+			i2chub0_se4_l1: i2chub0_se4_l1 {
 				mux = <0x49 0x01>;
 				phandle = <0x0b>;
 			};
 
-			i2chub0_se5_l0 {
+			i2chub0_se5_l0: i2chub0_se5_l0 {
 				mux = <0x4a 0x01>;
 				phandle = <0x0c>;
 			};
 
-			i2chub0_se5_l1 {
+			i2chub0_se5_l1: i2chub0_se5_l1 {
 				mux = <0x4b 0x01>;
 				phandle = <0x0d>;
 			};
 
-			i2chub0_se6_l0 {
+			i2chub0_se6_l0: i2chub0_se6_l0 {
 				mux = <0x4c 0x01>;
 				phandle = <0x0e>;
 			};
 
-			i2chub0_se6_l1 {
+			i2chub0_se6_l1: i2chub0_se6_l1 {
 				mux = <0x4d 0x01>;
 				phandle = <0x0f>;
 			};
 
-			i2chub0_se9_l0 {
+			i2chub0_se9_l0: i2chub0_se9_l0 {
 				mux = <0x50 0x01>;
 				phandle = <0x14>;
 			};
 
-			i2chub0_se9_l1 {
+			i2chub0_se9_l1: i2chub0_se9_l1 {
 				mux = <0x51 0x01>;
 				phandle = <0x15>;
 			};
 
-			i2chub0_se7_l0 {
+			i2chub0_se7_l0: i2chub0_se7_l0 {
 				mux = <0x52 0x01>;
 				phandle = <0x10>;
 			};
 
-			i2chub0_se7_l1 {
+			i2chub0_se7_l1: i2chub0_se7_l1 {
 				mux = <0x53 0x01>;
 				phandle = <0x11>;
 			};
@@ -949,593 +949,593 @@
 				phandle = <0xda>;
 			};
 
-			i2chub0_se8_l0 {
+			i2chub0_se8_l0: i2chub0_se8_l0 {
 				mux = <0xce 0x01>;
 				phandle = <0x12>;
 			};
 
-			i2chub0_se8_l1 {
+			i2chub0_se8_l1: i2chub0_se8_l1 {
 				mux = <0xcf 0x01>;
 				phandle = <0x13>;
 			};
 
-			top_qup0_se0_i2c_active {
-				config = <0x02 0xc80209 0x03 0xc80209>;
+			top_qup0_se0_i2c_active: top_qup0_se0_i2c_active {
+				config = <&i2chub0_se0_l0 0xc80209 &i2chub0_se0_l1 0xc80209>;
 				phandle = <0x58>;
 			};
 
-			top_qup0_se0_i2c_sleep {
-				config = <0x02 0xc80021 0x03 0xc80021>;
+			top_qup0_se0_i2c_sleep: top_qup0_se0_i2c_sleep {
+				config = <&i2chub0_se0_l0 0xc80021 &i2chub0_se0_l1 0xc80021>;
 				phandle = <0x59>;
 			};
 
-			top_qup0_se1_i2c_active {
-				config = <0x04 0xc80209 0x05 0xc80209>;
+			top_qup0_se1_i2c_active: top_qup0_se1_i2c_active {
+				config = <&i2chub0_se1_l0 0xc80209 &i2chub0_se1_l1 0xc80209>;
 				phandle = <0x5a>;
 			};
 
-			top_qup0_se1_i2c_sleep {
-				config = <0x04 0xc80021 0x05 0xc80021>;
+			top_qup0_se1_i2c_sleep: top_qup0_se1_i2c_sleep {
+				config = <&i2chub0_se1_l0 0xc80021 &i2chub0_se1_l1 0xc80021>;
 				phandle = <0x5b>;
 			};
 
-			top_qup0_se2_i2c_active {
-				config = <0x06 0xc80209 0x07 0xc80209>;
+			top_qup0_se2_i2c_active: top_qup0_se2_i2c_active {
+				config = <&i2chub0_se2_l0 0xc80209 &i2chub0_se2_l1 0xc80209>;
 				phandle = <0x5c>;
 			};
 
-			top_qup0_se2_i2c_sleep {
-				config = <0x06 0xc80021 0x07 0xc80021>;
+			top_qup0_se2_i2c_sleep: top_qup0_se2_i2c_sleep {
+				config = <&i2chub0_se2_l0 0xc80021 &i2chub0_se2_l1 0xc80021>;
 				phandle = <0x5d>;
 			};
 
-			top_qup0_se3_i2c_active {
-				config = <0x08 0xc80209 0x09 0xc80209>;
+			top_qup0_se3_i2c_active: top_qup0_se3_i2c_active {
+				config = <&i2chub0_se3_l0 0xc80209 &i2chub0_se3_l1 0xc80209>;
 				phandle = <0x5e>;
 			};
 
-			top_qup0_se3_i2c_sleep {
-				config = <0x08 0xc80021 0x09 0xc80021>;
+			top_qup0_se3_i2c_sleep: top_qup0_se3_i2c_sleep {
+				config = <&i2chub0_se3_l0 0xc80021 &i2chub0_se3_l1 0xc80021>;
 				phandle = <0x5f>;
 			};
 
-			top_qup0_se4_i2c_active {
-				config = <0x0a 0xc80209 0x0b 0xc80209>;
+			top_qup0_se4_i2c_active: top_qup0_se4_i2c_active {
+				config = <&i2chub0_se4_l0 0xc80209 &i2chub0_se4_l1 0xc80209>;
 				phandle = <0x60>;
 			};
 
-			top_qup0_se4_i2c_sleep {
-				config = <0x0a 0xc80021 0x0b 0xc80021>;
+			top_qup0_se4_i2c_sleep: top_qup0_se4_i2c_sleep {
+				config = <&i2chub0_se4_l0 0xc80021 &i2chub0_se4_l1 0xc80021>;
 				phandle = <0x61>;
 			};
 
-			top_qup0_se5_i2c_active {
-				config = <0x0c 0xc80209 0x0d 0xc80209>;
+			top_qup0_se5_i2c_active: top_qup0_se5_i2c_active {
+				config = <&i2chub0_se5_l0 0xc80209 &i2chub0_se5_l1 0xc80209>;
 				phandle = <0x62>;
 			};
 
-			top_qup0_se5_i2c_sleep {
-				config = <0x0c 0xc80021 0x0d 0xc80021>;
+			top_qup0_se5_i2c_sleep: top_qup0_se5_i2c_sleep {
+				config = <&i2chub0_se5_l0 0xc80021 &i2chub0_se5_l1 0xc80021>;
 				phandle = <0x63>;
 			};
 
-			top_qup0_se6_i2c_active {
-				config = <0x0e 0xc80209 0x0f 0xc80209>;
+			top_qup0_se6_i2c_active: top_qup0_se6_i2c_active {
+				config = <&i2chub0_se6_l0 0xc80209 &i2chub0_se6_l1 0xc80209>;
 				phandle = <0x64>;
 			};
 
-			top_qup0_se6_i2c_sleep {
-				config = <0x0e 0xc80021 0x0f 0xc80021>;
+			top_qup0_se6_i2c_sleep: top_qup0_se6_i2c_sleep {
+				config = <&i2chub0_se6_l0 0xc80021 &i2chub0_se6_l1 0xc80021>;
 				phandle = <0x65>;
 			};
 
-			top_qup0_se7_i2c_active {
-				config = <0x10 0xc80209 0x11 0xc80209>;
+			top_qup0_se7_i2c_active: top_qup0_se7_i2c_active {
+				config = <&i2chub0_se7_l0 0xc80209 &i2chub0_se7_l1 0xc80209>;
 				phandle = <0x66>;
 			};
 
-			top_qup0_se7_i2c_sleep {
-				config = <0x10 0xc80021 0x11 0xc80021>;
+			top_qup0_se7_i2c_sleep: top_qup0_se7_i2c_sleep {
+				config = <&i2chub0_se7_l0 0xc80021 &i2chub0_se7_l1 0xc80021>;
 				phandle = <0x67>;
 			};
 
-			top_qup0_se8_i2c_active {
-				config = <0x12 0xc80209 0x13 0xc80209>;
+			top_qup0_se8_i2c_active: top_qup0_se8_i2c_active {
+				config = <&i2chub0_se8_l0 0xc80209 &i2chub0_se8_l1 0xc80209>;
 				phandle = <0x68>;
 			};
 
-			top_qup0_se8_i2c_sleep {
-				config = <0x12 0xc80021 0x13 0xc80021>;
+			top_qup0_se8_i2c_sleep: top_qup0_se8_i2c_sleep {
+				config = <&i2chub0_se8_l0 0xc80021 &i2chub0_se8_l1 0xc80021>;
 				phandle = <0x69>;
 			};
 
-			top_qup0_se9_i2c_active {
-				config = <0x14 0xc80209 0x15 0xc80209>;
+			top_qup0_se9_i2c_active: top_qup0_se9_i2c_active {
+				config = <&i2chub0_se9_l0 0xc80209 &i2chub0_se9_l1 0xc80209>;
 				phandle = <0x6a>;
 			};
 
-			top_qup0_se9_i2c_sleep {
-				config = <0x14 0xc80021 0x15 0xc80021>;
+			top_qup0_se9_i2c_sleep: top_qup0_se9_i2c_sleep {
+				config = <&i2chub0_se9_l0 0xc80021 &i2chub0_se9_l1 0xc80021>;
 				phandle = <0x6b>;
 			};
 
-			top_qup1_se0_i2c_active {
-				config = <0x16 0xc80209 0x17 0xc80209>;
+			top_qup1_se0_i2c_active: top_qup1_se0_i2c_active {
+				config = <&qup1_se0_l0 0xc80209 &qup1_se0_l1 0xc80209>;
 				phandle = <0x6c>;
 			};
 
-			top_qup1_se0_i2c_sleep {
-				config = <0x16 0xc80021 0x17 0xc80021>;
+			top_qup1_se0_i2c_sleep: top_qup1_se0_i2c_sleep {
+				config = <&qup1_se0_l0 0xc80021 &qup1_se0_l1 0xc80021>;
 				phandle = <0x6d>;
 			};
 
-			top_qup1_se0_spi_active {
-				config = <0x16 0x2580011 0x17 0x2580011 0x18 0x2580011 0x19 0x2580011>;
+			top_qup1_se0_spi_active: top_qup1_se0_spi_active {
+				config = <&qup1_se0_l0 0x2580011 &qup1_se0_l1 0x2580011 &qup1_se0_l2 0x2580011 &qup1_se0_l3 0x2580011>;
 				phandle = <0x6e>;
 			};
 
-			top_qup1_se0_spi_sleep {
-				config = <0x16 0xc80021 0x17 0xc80021 0x18 0xc80021 0x19 0xc80021>;
+			top_qup1_se0_spi_sleep: top_qup1_se0_spi_sleep {
+				config = <&qup1_se0_l0 0xc80021 &qup1_se0_l1 0xc80021 &qup1_se0_l2 0xc80021 &qup1_se0_l3 0xc80021>;
 				phandle = <0x6f>;
 			};
 
-			top_qup1_se0_uart_active {
-				config = <0x16 0xc80011 0x17 0xc80011 0x18 0xc80011 0x19 0xc80011>;
+			top_qup1_se0_uart_active: top_qup1_se0_uart_active {
+				config = <&qup1_se0_l0 0xc80011 &qup1_se0_l1 0xc80011 &qup1_se0_l2 0xc80011 &qup1_se0_l3 0xc80011>;
 				phandle = <0x70>;
 			};
 
-			top_qup1_se0_uart_sleep {
-				config = <0x16 0xc80005 0x17 0xc80005 0x18 0xc80005 0x19 0xc80005>;
+			top_qup1_se0_uart_sleep: top_qup1_se0_uart_sleep {
+				config = <&qup1_se0_l0 0xc80005 &qup1_se0_l1 0xc80005 &qup1_se0_l2 0xc80005 &qup1_se0_l3 0xc80005>;
 				phandle = <0x71>;
 			};
 
-			top_qup1_se1_i2c_active {
-				config = <0x1a 0xc80209 0x1b 0xc80209>;
+			top_qup1_se1_i2c_active: top_qup1_se1_i2c_active {
+				config = <&qup1_se1_l0 0xc80209 &qup1_se1_l1 0xc80209>;
 				phandle = <0x72>;
 			};
 
-			top_qup1_se1_i2c_sleep {
-				config = <0x1a 0xc80021 0x1b 0xc80021>;
+			top_qup1_se1_i2c_sleep: top_qup1_se1_i2c_sleep {
+				config = <&qup1_se1_l0 0xc80021 &qup1_se1_l1 0xc80021>;
 				phandle = <0x73>;
 			};
 
-			top_qup1_se1_spi_active {
-				config = <0x1a 0x2580011 0x1b 0x2580011 0x1c 0x2580011 0x1d 0x2580011>;
+			top_qup1_se1_spi_active: top_qup1_se1_spi_active {
+				config = <&qup1_se1_l0 0x2580011 &qup1_se1_l1 0x2580011 &qup1_se1_l2 0x2580011 &qup1_se1_l3 0x2580011>;
 				phandle = <0x74>;
 			};
 
-			top_qup1_se1_spi_sleep {
-				config = <0x1a 0xc80021 0x1b 0xc80021 0x1c 0xc80021 0x1d 0xc80021>;
+			top_qup1_se1_spi_sleep: top_qup1_se1_spi_sleep {
+				config = <&qup1_se1_l0 0xc80021 &qup1_se1_l1 0xc80021 &qup1_se1_l2 0xc80021 &qup1_se1_l3 0xc80021>;
 				phandle = <0x75>;
 			};
 
-			top_qup1_se1_uart_active {
-				config = <0x1a 0xc80011 0x1b 0xc80011 0x1c 0xc80011 0x1d 0xc80011>;
+			top_qup1_se1_uart_active: top_qup1_se1_uart_active {
+				config = <&qup1_se1_l0 0xc80011 &qup1_se1_l1 0xc80011 &qup1_se1_l2 0xc80011 &qup1_se1_l3 0xc80011>;
 				phandle = <0x76>;
 			};
 
-			top_qup1_se1_uart_sleep {
-				config = <0x1a 0xc80005 0x1b 0xc80005 0x1c 0xc80005 0x1d 0xc80005>;
+			top_qup1_se1_uart_sleep: top_qup1_se1_uart_sleep {
+				config = <&qup1_se1_l0 0xc80005 &qup1_se1_l1 0xc80005 &qup1_se1_l2 0xc80005 &qup1_se1_l3 0xc80005>;
 				phandle = <0x77>;
 			};
 
-			top_qup1_se2_i2c_active {
-				config = <0x1e 0xc80209 0x1f 0xc80209>;
+			top_qup1_se2_i2c_active: top_qup1_se2_i2c_active {
+				config = <&qup1_se2_l0 0xc80209 &qup1_se2_l1 0xc80209>;
 				phandle = <0x78>;
 			};
 
-			top_qup1_se2_i2c_sleep {
-				config = <0x1e 0xc80021 0x1f 0xc80021>;
+			top_qup1_se2_i2c_sleep: top_qup1_se2_i2c_sleep {
+				config = <&qup1_se2_l0 0xc80021 &qup1_se2_l1 0xc80021>;
 				phandle = <0x79>;
 			};
 
-			top_qup1_se2_spi_active {
-				config = <0x1e 0x2580011 0x1f 0x2580011 0x20 0x2580011 0x21 0x2580011>;
+			top_qup1_se2_spi_active: top_qup1_se2_spi_active {
+				config = <&qup1_se2_l0 0x2580011 &qup1_se2_l1 0x2580011 &qup1_se2_l2 0x2580011 &qup1_se2_l3 0x2580011>;
 				phandle = <0x7a>;
 			};
 
-			top_qup1_se2_spi_sleep {
-				config = <0x1e 0xc80021 0x1f 0xc80021 0x20 0xc80021 0x21 0xc80021>;
+			top_qup1_se2_spi_sleep: top_qup1_se2_spi_sleep {
+				config = <&qup1_se2_l0 0xc80021 &qup1_se2_l1 0xc80021 &qup1_se2_l2 0xc80021 &qup1_se2_l3 0xc80021>;
 				phandle = <0x7b>;
 			};
 
-			top_qup1_se2_uart_active {
-				config = <0x1e 0xc80011 0x1f 0xc80011 0x20 0xc80011 0x21 0xc80011>;
+			top_qup1_se2_uart_active: top_qup1_se2_uart_active {
+				config = <&qup1_se2_l0 0xc80011 &qup1_se2_l1 0xc80011 &qup1_se2_l2 0xc80011 &qup1_se2_l3 0xc80011>;
 				phandle = <0x7c>;
 			};
 
-			top_qup1_se2_uart_sleep {
-				config = <0x1e 0xc80005 0x1f 0xc80005 0x20 0xc80005 0x21 0xc80005>;
+			top_qup1_se2_uart_sleep: top_qup1_se2_uart_sleep {
+				config = <&qup1_se2_l0 0xc80005 &qup1_se2_l1 0xc80005 &qup1_se2_l2 0xc80005 &qup1_se2_l3 0xc80005>;
 				phandle = <0x7d>;
 			};
 
-			top_qup1_se3_i2c_active {
-				config = <0x22 0xc80209 0x23 0xc80209>;
+			top_qup1_se3_i2c_active: top_qup1_se3_i2c_active {
+				config = <&qup1_se3_l0 0xc80209 &qup1_se3_l1 0xc80209>;
 				phandle = <0x7e>;
 			};
 
-			top_qup1_se3_i2c_sleep {
-				config = <0x22 0xc80021 0x23 0xc80021>;
+			top_qup1_se3_i2c_sleep: top_qup1_se3_i2c_sleep {
+				config = <&qup1_se3_l0 0xc80021 &qup1_se3_l1 0xc80021>;
 				phandle = <0x7f>;
 			};
 
-			top_qup1_se3_spi_active {
-				config = <0x22 0x2580011 0x23 0x2580011 0x24 0x2580011 0x25 0x2580011>;
+			top_qup1_se3_spi_active: top_qup1_se3_spi_active {
+				config = <&qup1_se3_l0 0x2580011 &qup1_se3_l1 0x2580011 &qup1_se3_l2 0x2580011 &qup1_se3_l3 0x2580011>;
 				phandle = <0x80>;
 			};
 
-			top_qup1_se3_spi_sleep {
-				config = <0x22 0xc80021 0x23 0xc80021 0x24 0xc80021 0x25 0xc80021>;
+			top_qup1_se3_spi_sleep: top_qup1_se3_spi_sleep {
+				config = <&qup1_se3_l0 0xc80021 &qup1_se3_l1 0xc80021 &qup1_se3_l2 0xc80021 &qup1_se3_l3 0xc80021>;
 				phandle = <0x81>;
 			};
 
-			top_qup1_se3_uart_active {
-				config = <0x22 0xc80011 0x23 0xc80011 0x24 0xc80011 0x25 0xc80011>;
+			top_qup1_se3_uart_active: top_qup1_se3_uart_active {
+				config = <&qup1_se3_l0 0xc80011 &qup1_se3_l1 0xc80011 &qup1_se3_l2 0xc80011 &qup1_se3_l3 0xc80011>;
 				phandle = <0x82>;
 			};
 
-			top_qup1_se3_uart_sleep {
-				config = <0x22 0xc80005 0x23 0xc80005 0x24 0xc80005 0x25 0xc80005>;
+			top_qup1_se3_uart_sleep: top_qup1_se3_uart_sleep {
+				config = <&qup1_se3_l0 0xc80005 &qup1_se3_l1 0xc80005 &qup1_se3_l2 0xc80005 &qup1_se3_l3 0xc80005>;
 				phandle = <0x83>;
 			};
 
-			top_qup1_se4_i2c_active {
-				config = <0x26 0xc80209 0x27 0xc80209>;
+			top_qup1_se4_i2c_active: top_qup1_se4_i2c_active {
+				config = <&qup1_se4_l0 0xc80209 &qup1_se4_l1 0xc80209>;
 				phandle = <0x84>;
 			};
 
-			top_qup1_se4_i2c_sleep {
-				config = <0x26 0xc80021 0x27 0xc80021>;
+			top_qup1_se4_i2c_sleep: top_qup1_se4_i2c_sleep {
+				config = <&qup1_se4_l0 0xc80021 &qup1_se4_l1 0xc80021>;
 				phandle = <0x85>;
 			};
 
-			top_qup1_se4_spi_active {
-				config = <0x26 0x2580011 0x27 0x2580011 0x28 0x2580011 0x29 0x2580011>;
+			top_qup1_se4_spi_active: top_qup1_se4_spi_active {
+				config = <&qup1_se4_l0 0x2580011 &qup1_se4_l1 0x2580011 &qup1_se4_l2 0x2580011 &qup1_se4_l3 0x2580011>;
 				phandle = <0x86>;
 			};
 
-			top_qup1_se4_spi_sleep {
-				config = <0x26 0xc80021 0x27 0xc80021 0x28 0xc80021 0x29 0xc80021>;
+			top_qup1_se4_spi_sleep: top_qup1_se4_spi_sleep {
+				config = <&qup1_se4_l0 0xc80021 &qup1_se4_l1 0xc80021 &qup1_se4_l2 0xc80021 &qup1_se4_l3 0xc80021>;
 				phandle = <0x87>;
 			};
 
-			top_qup1_se4_uart_active {
-				config = <0x26 0xc80011 0x27 0xc80011 0x28 0xc80011 0x29 0xc80011>;
+			top_qup1_se4_uart_active: top_qup1_se4_uart_active {
+				config = <&qup1_se4_l0 0xc80011 &qup1_se4_l1 0xc80011 &qup1_se4_l2 0xc80011 &qup1_se4_l3 0xc80011>;
 				phandle = <0x88>;
 			};
 
-			top_qup1_se4_uart_sleep {
-				config = <0x26 0xc80005 0x27 0xc80005 0x28 0xc80005 0x29 0xc80005>;
+			top_qup1_se4_uart_sleep: top_qup1_se4_uart_sleep {
+				config = <&qup1_se4_l0 0xc80005 &qup1_se4_l1 0xc80005 &qup1_se4_l2 0xc80005 &qup1_se4_l3 0xc80005>;
 				phandle = <0x89>;
 			};
 
-			top_qup1_se5_i2c_active {
-				config = <0x2a 0xc80209 0x2b 0xc80209>;
+			top_qup1_se5_i2c_active: top_qup1_se5_i2c_active {
+				config = <&qup1_se5_l0 0xc80209 &qup1_se5_l1 0xc80209>;
 				phandle = <0x8a>;
 			};
 
-			top_qup1_se5_i2c_sleep {
-				config = <0x2a 0xc80021 0x2b 0xc80021>;
+			top_qup1_se5_i2c_sleep: top_qup1_se5_i2c_sleep {
+				config = <&qup1_se5_l0 0xc80021 &qup1_se5_l1 0xc80021>;
 				phandle = <0x8b>;
 			};
 
-			top_qup1_se5_spi_active {
-				config = <0x2a 0x2580011 0x2b 0x2580011 0x2c 0x2580011 0x2d 0x2580011>;
+			top_qup1_se5_spi_active: top_qup1_se5_spi_active {
+				config = <&qup1_se5_l0 0x2580011 &qup1_se5_l1 0x2580011 &qup1_se5_l2 0x2580011 &qup1_se5_l3 0x2580011>;
 				phandle = <0x8c>;
 			};
 
-			top_qup1_se5_spi_sleep {
-				config = <0x2a 0xc80021 0x2b 0xc80021 0x2c 0xc80021 0x2d 0xc80021>;
+			top_qup1_se5_spi_sleep: top_qup1_se5_spi_sleep {
+				config = <&qup1_se5_l0 0xc80021 &qup1_se5_l1 0xc80021 &qup1_se5_l2 0xc80021 &qup1_se5_l3 0xc80021>;
 				phandle = <0x8d>;
 			};
 
-			top_qup1_se5_uart_active {
-				config = <0x2a 0xc80011 0x2b 0xc80011 0x2c 0xc80011 0x2d 0xc80011>;
+			top_qup1_se5_uart_active: top_qup1_se5_uart_active {
+				config = <&qup1_se5_l0 0xc80011 &qup1_se5_l1 0xc80011 &qup1_se5_l2 0xc80011 &qup1_se5_l3 0xc80011>;
 				phandle = <0x8e>;
 			};
 
-			top_qup1_se5_uart_sleep {
-				config = <0x2a 0xc80005 0x2b 0xc80005 0x2c 0xc80005 0x2d 0xc80005>;
+			top_qup1_se5_uart_sleep: top_qup1_se5_uart_sleep {
+				config = <&qup1_se5_l0 0xc80005 &qup1_se5_l1 0xc80005 &qup1_se5_l2 0xc80005 &qup1_se5_l3 0xc80005>;
 				phandle = <0x8f>;
 			};
 
-			top_qup1_se6_i2c_active {
-				config = <0x2e 0xc80209 0x2f 0xc80209>;
+			top_qup1_se6_i2c_active: top_qup1_se6_i2c_active {
+				config = <&qup1_se6_l0 0xc80209 &qup1_se6_l1 0xc80209>;
 				phandle = <0x90>;
 			};
 
-			top_qup1_se6_i2c_sleep {
-				config = <0x2e 0xc80021 0x2f 0xc80021>;
+			top_qup1_se6_i2c_sleep: top_qup1_se6_i2c_sleep {
+				config = <&qup1_se6_l0 0xc80021 &qup1_se6_l1 0xc80021>;
 				phandle = <0x91>;
 			};
 
-			top_qup1_se6_spi_active {
-				config = <0x2e 0x2580011 0x2f 0x2580011 0x30 0x2580011 0x31 0x2580011>;
+			top_qup1_se6_spi_active: top_qup1_se6_spi_active {
+				config = <&qup1_se6_l0 0x2580011 &qup1_se6_l1 0x2580011 &qup1_se6_l2 0x2580011 &qup1_se6_l3 0x2580011>;
 				phandle = <0x92>;
 			};
 
-			top_qup1_se6_spi_sleep {
-				config = <0x2e 0xc80021 0x2f 0xc80021 0x30 0xc80021 0x31 0xc80021>;
+			top_qup1_se6_spi_sleep: top_qup1_se6_spi_sleep {
+				config = <&qup1_se6_l0 0xc80021 &qup1_se6_l1 0xc80021 &qup1_se6_l2 0xc80021 &qup1_se6_l3 0xc80021>;
 				phandle = <0x93>;
 			};
 
-			top_qup1_se6_uart_active {
-				config = <0x2e 0xc80011 0x2f 0xc80011 0x30 0xc80011 0x31 0xc80011>;
+			top_qup1_se6_uart_active: top_qup1_se6_uart_active {
+				config = <&qup1_se6_l0 0xc80011 &qup1_se6_l1 0xc80011 &qup1_se6_l2 0xc80011 &qup1_se6_l3 0xc80011>;
 				phandle = <0x94>;
 			};
 
-			top_qup1_se6_uart_sleep {
-				config = <0x2e 0xc80005 0x2f 0xc80005 0x30 0xc80005 0x31 0xc80005>;
+			top_qup1_se6_uart_sleep: top_qup1_se6_uart_sleep {
+				config = <&qup1_se6_l0 0xc80005 &qup1_se6_l1 0xc80005 &qup1_se6_l2 0xc80005 &qup1_se6_l3 0xc80005>;
 				phandle = <0x95>;
 			};
 
-			top_qup1_se7_i2c_active {
-				config = <0x32 0xc80209 0x33 0xc80209>;
+			top_qup1_se7_i2c_active: top_qup1_se7_i2c_active {
+				config = <&qup1_se7_l0 0xc80209 &qup1_se7_l1 0xc80209>;
 				phandle = <0x96>;
 			};
 
-			top_qup1_se7_i2c_sleep {
-				config = <0x32 0xc80021 0x33 0xc80021>;
+			top_qup1_se7_i2c_sleep: top_qup1_se7_i2c_sleep {
+				config = <&qup1_se7_l0 0xc80021 &qup1_se7_l1 0xc80021>;
 				phandle = <0x97>;
 			};
 
-			top_qup1_se7_spi_active {
-				config = <0x32 0x2580011 0x33 0x2580011 0x34 0x2580011 0x35 0x2580011>;
+			top_qup1_se7_spi_active: top_qup1_se7_spi_active {
+				config = <&qup1_se7_l0 0x2580011 &qup1_se7_l1 0x2580011 &qup1_se7_l2 0x2580011 &qup1_se7_l3 0x2580011>;
 				phandle = <0x98>;
 			};
 
-			top_qup1_se7_spi_sleep {
-				config = <0x32 0xc80021 0x33 0xc80021 0x34 0xc80021 0x35 0xc80021>;
+			top_qup1_se7_spi_sleep: top_qup1_se7_spi_sleep {
+				config = <&qup1_se7_l0 0xc80021 &qup1_se7_l1 0xc80021 &qup1_se7_l2 0xc80021 &qup1_se7_l3 0xc80021>;
 				phandle = <0x99>;
 			};
 
-			top_qup1_se7_uart_active {
-				config = <0x32 0xc80011 0x33 0xc80011 0x34 0xc80011 0x35 0xc80011>;
+			top_qup1_se7_uart_active: top_qup1_se7_uart_active {
+				config = <&qup1_se7_l0 0xc80011 &qup1_se7_l1 0xc80011 &qup1_se7_l2 0xc80011 &qup1_se7_l3 0xc80011>;
 				phandle = <0x9a>;
 			};
 
-			top_qup1_se7_uart_sleep {
-				config = <0x32 0xc80005 0x33 0xc80005 0x34 0xc80005 0x35 0xc80005>;
+			top_qup1_se7_uart_sleep: top_qup1_se7_uart_sleep {
+				config = <&qup1_se7_l0 0xc80005 &qup1_se7_l1 0xc80005 &qup1_se7_l2 0xc80005 &qup1_se7_l3 0xc80005>;
 				phandle = <0x9b>;
 			};
 
-			top_qup2_se0_i2c_active {
-				config = <0x36 0xc80209 0x37 0xc80209>;
+			top_qup2_se0_i2c_active: top_qup2_se0_i2c_active {
+				config = <&qup2_se0_l0 0xc80209 &qup2_se0_l1 0xc80209>;
 				phandle = <0x9c>;
 			};
 
-			top_qup2_se0_i2c_sleep {
-				config = <0x36 0xc80021 0x37 0xc80021>;
+			top_qup2_se0_i2c_sleep: top_qup2_se0_i2c_sleep {
+				config = <&qup2_se0_l0 0xc80021 &qup2_se0_l1 0xc80021>;
 				phandle = <0x9d>;
 			};
 
-			top_qup2_se0_spi_active {
-				config = <0x36 0x2580011 0x37 0x2580011 0x38 0x2580011 0x39 0x2580011>;
+			top_qup2_se0_spi_active: top_qup2_se0_spi_active {
+				config = <&qup2_se0_l0 0x2580011 &qup2_se0_l1 0x2580011 &qup2_se0_l2 0x2580011 &qup2_se0_l3 0x2580011>;
 				phandle = <0x9e>;
 			};
 
-			top_qup2_se0_spi_sleep {
-				config = <0x36 0xc80021 0x37 0xc80021 0x38 0xc80021 0x39 0xc80021>;
+			top_qup2_se0_spi_sleep: top_qup2_se0_spi_sleep {
+				config = <&qup2_se0_l0 0xc80021 &qup2_se0_l1 0xc80021 &qup2_se0_l2 0xc80021 &qup2_se0_l3 0xc80021>;
 				phandle = <0x9f>;
 			};
 
-			top_qup2_se0_uart_active {
-				config = <0x36 0xc80011 0x37 0xc80011 0x38 0xc80011 0x39 0xc80011>;
+			top_qup2_se0_uart_active: top_qup2_se0_uart_active {
+				config = <&qup2_se0_l0 0xc80011 &qup2_se0_l1 0xc80011 &qup2_se0_l2 0xc80011 &qup2_se0_l3 0xc80011>;
 				phandle = <0xa0>;
 			};
 
-			top_qup2_se0_uart_sleep {
-				config = <0x36 0xc80005 0x37 0xc80005 0x38 0xc80005 0x39 0xc80005>;
+			top_qup2_se0_uart_sleep: top_qup2_se0_uart_sleep {
+				config = <&qup2_se0_l0 0xc80005 &qup2_se0_l1 0xc80005 &qup2_se0_l2 0xc80005 &qup2_se0_l3 0xc80005>;
 				phandle = <0xa1>;
 			};
 
-			top_qup2_se1_i2c_active {
-				config = <0x3a 0xc80209 0x3b 0xc80209>;
+			top_qup2_se1_i2c_active: top_qup2_se1_i2c_active {
+				config = <&qup2_se1_l0 0xc80209 &qup2_se1_l1 0xc80209>;
 				phandle = <0xa2>;
 			};
 
-			top_qup2_se1_i2c_sleep {
-				config = <0x3a 0xc80021 0x3b 0xc80021>;
+			top_qup2_se1_i2c_sleep: top_qup2_se1_i2c_sleep {
+				config = <&qup2_se1_l0 0xc80021 &qup2_se1_l1 0xc80021>;
 				phandle = <0xa3>;
 			};
 
-			top_qup2_se1_spi_active {
-				config = <0x3a 0x2580011 0x3b 0x2580011 0x3c 0x2580011 0x3d 0x2580011>;
+			top_qup2_se1_spi_active: top_qup2_se1_spi_active {
+				config = <&qup2_se1_l0 0x2580011 &qup2_se1_l1 0x2580011 &qup2_se1_l2 0x2580011 &qup2_se1_l3 0x2580011>;
 				phandle = <0xa4>;
 			};
 
-			top_qup2_se1_spi_sleep {
-				config = <0x3a 0xc80021 0x3b 0xc80021 0x3c 0xc80021 0x3d 0xc80021>;
+			top_qup2_se1_spi_sleep: top_qup2_se1_spi_sleep {
+				config = <&qup2_se1_l0 0xc80021 &qup2_se1_l1 0xc80021 &qup2_se1_l2 0xc80021 &qup2_se1_l3 0xc80021>;
 				phandle = <0xa5>;
 			};
 
-			top_qup2_se1_uart_active {
-				config = <0x3a 0xc80011 0x3b 0xc80011 0x3c 0xc80011 0x3d 0xc80011>;
+			top_qup2_se1_uart_active: top_qup2_se1_uart_active {
+				config = <&qup2_se1_l0 0xc80011 &qup2_se1_l1 0xc80011 &qup2_se1_l2 0xc80011 &qup2_se1_l3 0xc80011>;
 				phandle = <0xa6>;
 			};
 
-			top_qup2_se1_uart_sleep {
-				config = <0x3a 0xc80005 0x3b 0xc80005 0x3c 0xc80005 0x3d 0xc80005>;
+			top_qup2_se1_uart_sleep: top_qup2_se1_uart_sleep {
+				config = <&qup2_se1_l0 0xc80005 &qup2_se1_l1 0xc80005 &qup2_se1_l2 0xc80005 &qup2_se1_l3 0xc80005>;
 				phandle = <0xa7>;
 			};
 
-			top_qup2_se2_i2c_active {
-				config = <0x3e 0xc80209 0x3f 0xc80209>;
+			top_qup2_se2_i2c_active: top_qup2_se2_i2c_active {
+				config = <&qup2_se2_l0 0xc80209 &qup2_se2_l1 0xc80209>;
 				phandle = <0xa8>;
 			};
 
-			top_qup2_se2_i2c_sleep {
-				config = <0x3e 0xc80021 0x3f 0xc80021>;
+			top_qup2_se2_i2c_sleep: top_qup2_se2_i2c_sleep {
+				config = <&qup2_se2_l0 0xc80021 &qup2_se2_l1 0xc80021>;
 				phandle = <0xa9>;
 			};
 
-			top_qup2_se2_spi_active {
-				config = <0x3e 0x2580011 0x3f 0x2580011 0x40 0x2580011 0x41 0x2580011>;
+			top_qup2_se2_spi_active: top_qup2_se2_spi_active {
+				config = <&qup2_se2_l0 0x2580011 &qup2_se2_l1 0x2580011 &qup2_se2_l2 0x2580011 &qup2_se2_l3 0x2580011>;
 				phandle = <0xaa>;
 			};
 
-			top_qup2_se2_spi_sleep {
-				config = <0x3e 0xc80021 0x3f 0xc80021 0x40 0xc80021 0x41 0xc80021>;
+			top_qup2_se2_spi_sleep: top_qup2_se2_spi_sleep {
+				config = <&qup2_se2_l0 0xc80021 &qup2_se2_l1 0xc80021 &qup2_se2_l2 0xc80021 &qup2_se2_l3 0xc80021>;
 				phandle = <0xab>;
 			};
 
-			top_qup2_se2_uart_active {
-				config = <0x3e 0xc80011 0x3f 0xc80011 0x40 0xc80011 0x41 0xc80011>;
+			top_qup2_se2_uart_active: top_qup2_se2_uart_active {
+				config = <&qup2_se2_l0 0xc80011 &qup2_se2_l1 0xc80011 &qup2_se2_l2 0xc80011 &qup2_se2_l3 0xc80011>;
 				phandle = <0xac>;
 			};
 
-			top_qup2_se2_uart_sleep {
-				config = <0x3e 0xc80005 0x3f 0xc80005 0x40 0xc80005 0x41 0xc80005>;
+			top_qup2_se2_uart_sleep: top_qup2_se2_uart_sleep {
+				config = <&qup2_se2_l0 0xc80005 &qup2_se2_l1 0xc80005 &qup2_se2_l2 0xc80005 &qup2_se2_l3 0xc80005>;
 				phandle = <0xad>;
 			};
 
-			top_qup2_se3_i2c_active {
-				config = <0x42 0xc80209 0x43 0xc80209>;
+			top_qup2_se3_i2c_active: top_qup2_se3_i2c_active {
+				config = <&qup2_se3_l0 0xc80209 &qup2_se3_l1 0xc80209>;
 				phandle = <0xae>;
 			};
 
-			top_qup2_se3_i2c_sleep {
-				config = <0x42 0xc80021 0x43 0xc80021>;
+			top_qup2_se3_i2c_sleep: top_qup2_se3_i2c_sleep {
+				config = <&qup2_se3_l0 0xc80021 &qup2_se3_l1 0xc80021>;
 				phandle = <0xaf>;
 			};
 
-			top_qup2_se3_spi_active {
-				config = <0x42 0x2580011 0x43 0x2580011 0x44 0x2580011 0x45 0x2580011>;
+			top_qup2_se3_spi_active: top_qup2_se3_spi_active {
+				config = <&qup2_se3_l0 0x2580011 &qup2_se3_l1 0x2580011 &qup2_se3_l2 0x2580011 &qup2_se3_l3 0x2580011>;
 				phandle = <0xb0>;
 			};
 
-			top_qup2_se3_spi_sleep {
-				config = <0x42 0xc80021 0x43 0xc80021 0x44 0xc80021 0x45 0xc80021>;
+			top_qup2_se3_spi_sleep: top_qup2_se3_spi_sleep {
+				config = <&qup2_se3_l0 0xc80021 &qup2_se3_l1 0xc80021 &qup2_se3_l2 0xc80021 &qup2_se3_l3 0xc80021>;
 				phandle = <0xb1>;
 			};
 
-			top_qup2_se3_uart_active {
-				config = <0x42 0xc80011 0x43 0xc80011 0x44 0xc80011 0x45 0xc80011>;
+			top_qup2_se3_uart_active: top_qup2_se3_uart_active {
+				config = <&qup2_se3_l0 0xc80011 &qup2_se3_l1 0xc80011 &qup2_se3_l2 0xc80011 &qup2_se3_l3 0xc80011>;
 				phandle = <0xb2>;
 			};
 
-			top_qup2_se3_uart_sleep {
-				config = <0x42 0xc80005 0x43 0xc80005 0x44 0xc80005 0x45 0xc80005>;
+			top_qup2_se3_uart_sleep: top_qup2_se3_uart_sleep {
+				config = <&qup2_se3_l0 0xc80005 &qup2_se3_l1 0xc80005 &qup2_se3_l2 0xc80005 &qup2_se3_l3 0xc80005>;
 				phandle = <0xb3>;
 			};
 
-			top_qup2_se4_i2c_active {
-				config = <0x46 0xc80209 0x47 0xc80209>;
+			top_qup2_se4_i2c_active: top_qup2_se4_i2c_active {
+				config = <&qup2_se4_l0 0xc80209 &qup2_se4_l1 0xc80209>;
 				phandle = <0xb4>;
 			};
 
-			top_qup2_se4_i2c_sleep {
-				config = <0x46 0xc80021 0x47 0xc80021>;
+			top_qup2_se4_i2c_sleep: top_qup2_se4_i2c_sleep {
+				config = <&qup2_se4_l0 0xc80021 &qup2_se4_l1 0xc80021>;
 				phandle = <0xb5>;
 			};
 
-			top_qup2_se4_spi_active {
-				config = <0x46 0x2580011 0x47 0x2580011 0x48 0x2580011 0x49 0x2580011>;
+			top_qup2_se4_spi_active: top_qup2_se4_spi_active {
+				config = <&qup2_se4_l0 0x2580011 &qup2_se4_l1 0x2580011 &qup2_se4_l2 0x2580011 &qup2_se4_l3 0x2580011>;
 				phandle = <0xb6>;
 			};
 
-			top_qup2_se4_spi_sleep {
-				config = <0x46 0xc80021 0x47 0xc80021 0x48 0xc80021 0x49 0xc80021>;
+			top_qup2_se4_spi_sleep: top_qup2_se4_spi_sleep {
+				config = <&qup2_se4_l0 0xc80021 &qup2_se4_l1 0xc80021 &qup2_se4_l2 0xc80021 &qup2_se4_l3 0xc80021>;
 				phandle = <0xb7>;
 			};
 
-			top_qup2_se4_uart_active {
-				config = <0x46 0xc80011 0x47 0xc80011 0x48 0xc80011 0x49 0xc80011>;
+			top_qup2_se4_uart_active: top_qup2_se4_uart_active {
+				config = <&qup2_se4_l0 0xc80011 &qup2_se4_l1 0xc80011 &qup2_se4_l2 0xc80011 &qup2_se4_l3 0xc80011>;
 				phandle = <0xb8>;
 			};
 
-			top_qup2_se4_uart_sleep {
-				config = <0x46 0xc80005 0x47 0xc80005 0x48 0xc80005 0x49 0xc80005>;
+			top_qup2_se4_uart_sleep: top_qup2_se4_uart_sleep {
+				config = <&qup2_se4_l0 0xc80005 &qup2_se4_l1 0xc80005 &qup2_se4_l2 0xc80005 &qup2_se4_l3 0xc80005>;
 				phandle = <0xb9>;
 			};
 
-			top_qup2_se5_i2c_active {
-				config = <0x4a 0xc80209 0x4b 0xc80209>;
+			top_qup2_se5_i2c_active: top_qup2_se5_i2c_active {
+				config = <&qup2_se5_l0 0xc80209 &qup2_se5_l1 0xc80209>;
 				phandle = <0xba>;
 			};
 
-			top_qup2_se5_i2c_sleep {
-				config = <0x4a 0xc80021 0x4b 0xc80021>;
+			top_qup2_se5_i2c_sleep: top_qup2_se5_i2c_sleep {
+				config = <&qup2_se5_l0 0xc80021 &qup2_se5_l1 0xc80021>;
 				phandle = <0xbb>;
 			};
 
-			top_qup2_se5_spi_active {
-				config = <0x4a 0x2580011 0x4b 0x2580011 0x4c 0x2580011 0x4d 0x2580011>;
+			top_qup2_se5_spi_active: top_qup2_se5_spi_active {
+				config = <&qup2_se5_l0 0x2580011 &qup2_se5_l1 0x2580011 &qup2_se5_l2 0x2580011 &qup2_se5_l3 0x2580011>;
 				phandle = <0xbc>;
 			};
 
-			top_qup2_se5_spi_sleep {
-				config = <0x4a 0xc80021 0x4b 0xc80021 0x4c 0xc80021 0x4d 0xc80021>;
+			top_qup2_se5_spi_sleep: top_qup2_se5_spi_sleep {
+				config = <&qup2_se5_l0 0xc80021 &qup2_se5_l1 0xc80021 &qup2_se5_l2 0xc80021 &qup2_se5_l3 0xc80021>;
 				phandle = <0xbd>;
 			};
 
-			top_qup2_se5_uart_active {
-				config = <0x4a 0xc80011 0x4b 0xc80011 0x4c 0xc80011 0x4d 0xc80011>;
+			top_qup2_se5_uart_active: top_qup2_se5_uart_active {
+				config = <&qup2_se5_l0 0xc80011 &qup2_se5_l1 0xc80011 &qup2_se5_l2 0xc80011 &qup2_se5_l3 0xc80011>;
 				phandle = <0xbe>;
 			};
 
-			top_qup2_se5_uart_sleep {
-				config = <0x4a 0xc80005 0x4b 0xc80005 0x4c 0xc80005 0x4d 0xc80005>;
+			top_qup2_se5_uart_sleep: top_qup2_se5_uart_sleep {
+				config = <&qup2_se5_l0 0xc80005 &qup2_se5_l1 0xc80005 &qup2_se5_l2 0xc80005 &qup2_se5_l3 0xc80005>;
 				phandle = <0xbf>;
 			};
 
-			top_qup2_se6_i2c_active {
-				config = <0x4e 0xc80209 0x4f 0xc80209>;
+			top_qup2_se6_i2c_active: top_qup2_se6_i2c_active {
+				config = <&qup2_se6_l0 0xc80209 &qup2_se6_l1 0xc80209>;
 				phandle = <0xc0>;
 			};
 
-			top_qup2_se6_i2c_sleep {
-				config = <0x4e 0xc80021 0x4f 0xc80021>;
+			top_qup2_se6_i2c_sleep: top_qup2_se6_i2c_sleep {
+				config = <&qup2_se6_l0 0xc80021 &qup2_se6_l1 0xc80021>;
 				phandle = <0xc1>;
 			};
 
-			top_qup2_se6_spi_active {
-				config = <0x4e 0x2580011 0x4f 0x2580011 0x50 0x2580011 0x51 0x2580011>;
+			top_qup2_se6_spi_active: top_qup2_se6_spi_active {
+				config = <&qup2_se6_l0 0x2580011 &qup2_se6_l1 0x2580011 &qup2_se6_l2 0x2580011 &qup2_se6_l3 0x2580011>;
 				phandle = <0xc2>;
 			};
 
-			top_qup2_se6_spi_sleep {
-				config = <0x4e 0xc80021 0x4f 0xc80021 0x50 0xc80021 0x51 0xc80021>;
+			top_qup2_se6_spi_sleep: top_qup2_se6_spi_sleep {
+				config = <&qup2_se6_l0 0xc80021 &qup2_se6_l1 0xc80021 &qup2_se6_l2 0xc80021 &qup2_se6_l3 0xc80021>;
 				phandle = <0xc3>;
 			};
 
-			top_qup2_se6_uart_active {
-				config = <0x4e 0xc80011 0x4f 0xc80011 0x50 0xc80011 0x51 0xc80011>;
+			top_qup2_se6_uart_active: top_qup2_se6_uart_active {
+				config = <&qup2_se6_l0 0xc80011 &qup2_se6_l1 0xc80011 &qup2_se6_l2 0xc80011 &qup2_se6_l3 0xc80011>;
 				phandle = <0xc4>;
 			};
 
-			top_qup2_se6_uart_sleep {
-				config = <0x4e 0xc80005 0x4f 0xc80005 0x50 0xc80005 0x51 0xc80005>;
+			top_qup2_se6_uart_sleep: top_qup2_se6_uart_sleep {
+				config = <&qup2_se6_l0 0xc80005 &qup2_se6_l1 0xc80005 &qup2_se6_l2 0xc80005 &qup2_se6_l3 0xc80005>;
 				phandle = <0xc5>;
 			};
 
-			top_qup2_se7_i2c_active {
-				config = <0x52 0xc80209 0x53 0xc80209>;
+			top_qup2_se7_i2c_active: top_qup2_se7_i2c_active {
+				config = <&qup2_se7_l0 0xc80209 &qup2_se7_l1 0xc80209>;
 				phandle = <0xc6>;
 			};
 
-			top_qup2_se7_i2c_sleep {
-				config = <0x52 0xc80021 0x53 0xc80021>;
+			top_qup2_se7_i2c_sleep: top_qup2_se7_i2c_sleep {
+				config = <&qup2_se7_l0 0xc80021 &qup2_se7_l1 0xc80021>;
 				phandle = <0xc7>;
 			};
 
-			top_qup2_se7_spi_active {
-				config = <0x52 0x2580011 0x53 0x2580011 0x54 0x2580011 0x55 0x2580011>;
+			top_qup2_se7_spi_active: top_qup2_se7_spi_active {
+				config = <&qup2_se7_l0 0x2580011 &qup2_se7_l1 0x2580011 &qup2_se7_l2 0x2580011 &qup2_se7_l3 0x2580011>;
 				phandle = <0xc8>;
 			};
 
-			top_qup2_se7_spi_sleep {
-				config = <0x52 0xc80021 0x53 0xc80021 0x54 0xc80021 0x55 0xc80021>;
+			top_qup2_se7_spi_sleep: top_qup2_se7_spi_sleep {
+				config = <&qup2_se7_l0 0xc80021 &qup2_se7_l1 0xc80021 &qup2_se7_l2 0xc80021 &qup2_se7_l3 0xc80021>;
 				phandle = <0xc9>;
 			};
 
-			top_qup2_se7_uart_active {
-				config = <0x52 0xc80011 0x53 0xc80011 0x54 0xc80011 0x55 0xc80011>;
+			top_qup2_se7_uart_active: top_qup2_se7_uart_active {
+				config = <&qup2_se7_l0 0xc80011 &qup2_se7_l1 0xc80011 &qup2_se7_l2 0xc80011 &qup2_se7_l3 0xc80011>;
 				phandle = <0xca>;
 			};
 
-			top_qup2_se7_uart_sleep {
-				config = <0x52 0xc80005 0x53 0xc80005 0x54 0xc80005 0x55 0xc80005>;
+			top_qup2_se7_uart_sleep: top_qup2_se7_uart_sleep {
+				config = <&qup2_se7_l0 0xc80005 &qup2_se7_l1 0xc80005 &qup2_se7_l2 0xc80005 &qup2_se7_l3 0xc80005>;
 				phandle = <0xcb>;
 			};
 		};
@@ -4773,8 +4773,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x58>;
-				pinctrl-1 = <0x59>;
+				pinctrl-0 = <&top_qup0_se0_i2c_active>;
+				pinctrl-1 = <&top_qup0_se0_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s0_clk";
 			};
 
@@ -4794,8 +4794,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x5a>;
-				pinctrl-1 = <0x5b>;
+				pinctrl-0 = <&top_qup0_se1_i2c_active>;
+				pinctrl-1 = <&top_qup0_se1_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s1_clk";
 			};
 
@@ -4815,8 +4815,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x5c>;
-				pinctrl-1 = <0x5d>;
+				pinctrl-0 = <&top_qup0_se2_i2c_active>;
+				pinctrl-1 = <&top_qup0_se2_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s2_clk";
 			};
 
@@ -4836,8 +4836,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x5e>;
-				pinctrl-1 = <0x5f>;
+				pinctrl-0 = <&top_qup0_se3_i2c_active>;
+				pinctrl-1 = <&top_qup0_se3_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s3_clk";
 			};
 
@@ -4857,8 +4857,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x60>;
-				pinctrl-1 = <0x61>;
+				pinctrl-0 = <&top_qup0_se4_i2c_active>;
+				pinctrl-1 = <&top_qup0_se4_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s4_clk";
 			};
 
@@ -4878,8 +4878,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x62>;
-				pinctrl-1 = <0x63>;
+				pinctrl-0 = <&top_qup0_se5_i2c_active>;
+				pinctrl-1 = <&top_qup0_se5_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s5_clk";
 			};
 
@@ -4899,8 +4899,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x64>;
-				pinctrl-1 = <0x65>;
+				pinctrl-0 = <&top_qup0_se6_i2c_active>;
+				pinctrl-1 = <&top_qup0_se6_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s6_clk";
 			};
 
@@ -4920,8 +4920,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x66>;
-				pinctrl-1 = <0x67>;
+				pinctrl-0 = <&top_qup0_se7_i2c_active>;
+				pinctrl-1 = <&top_qup0_se7_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s7_clk";
 			};
 
@@ -4941,8 +4941,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x68>;
-				pinctrl-1 = <0x69>;
+				pinctrl-0 = <&top_qup0_se8_i2c_active>;
+				pinctrl-1 = <&top_qup0_se8_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s8_clk";
 			};
 
@@ -4962,8 +4962,8 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep";
-				pinctrl-0 = <0x6a>;
-				pinctrl-1 = <0x6b>;
+				pinctrl-0 = <&top_qup0_se9_i2c_active>;
+				pinctrl-1 = <&top_qup0_se9_i2c_sleep>;
 				se_clock = "gcc_qupv3_i2c_s9_clk";
 			};
 		};
@@ -4995,12 +4995,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x6c>;
-				pinctrl-1 = <0x6d>;
-				pinctrl-2 = <0x6e>;
-				pinctrl-3 = <0x6f>;
-				pinctrl-4 = <0x70>;
-				pinctrl-5 = <0x71>;
+				pinctrl-0 = <&top_qup1_se0_i2c_active>;
+				pinctrl-1 = <&top_qup1_se0_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se0_spi_active>;
+				pinctrl-3 = <&top_qup1_se0_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se0_uart_active>;
+				pinctrl-5 = <&top_qup1_se0_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s0_clk";
 			};
 
@@ -5020,12 +5020,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x72>;
-				pinctrl-1 = <0x73>;
-				pinctrl-2 = <0x74>;
-				pinctrl-3 = <0x75>;
-				pinctrl-4 = <0x76>;
-				pinctrl-5 = <0x77>;
+				pinctrl-0 = <&top_qup1_se1_i2c_active>;
+				pinctrl-1 = <&top_qup1_se1_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se1_spi_active>;
+				pinctrl-3 = <&top_qup1_se1_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se1_uart_active>;
+				pinctrl-5 = <&top_qup1_se1_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s1_clk";
 			};
 
@@ -5045,12 +5045,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x78>;
-				pinctrl-1 = <0x79>;
-				pinctrl-2 = <0x7a>;
-				pinctrl-3 = <0x7b>;
-				pinctrl-4 = <0x7c>;
-				pinctrl-5 = <0x7d>;
+				pinctrl-0 = <&top_qup1_se2_i2c_active>;
+				pinctrl-1 = <&top_qup1_se2_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se2_spi_active>;
+				pinctrl-3 = <&top_qup1_se2_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se2_uart_active>;
+				pinctrl-5 = <&top_qup1_se2_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s2_clk";
 			};
 
@@ -5070,12 +5070,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x7e>;
-				pinctrl-1 = <0x7f>;
-				pinctrl-2 = <0x80>;
-				pinctrl-3 = <0x81>;
-				pinctrl-4 = <0x82>;
-				pinctrl-5 = <0x83>;
+				pinctrl-0 = <&top_qup1_se3_i2c_active>;
+				pinctrl-1 = <&top_qup1_se3_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se3_spi_active>;
+				pinctrl-3 = <&top_qup1_se3_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se3_uart_active>;
+				pinctrl-5 = <&top_qup1_se3_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s3_clk";
 			};
 
@@ -5095,12 +5095,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x84>;
-				pinctrl-1 = <0x85>;
-				pinctrl-2 = <0x86>;
-				pinctrl-3 = <0x87>;
-				pinctrl-4 = <0x88>;
-				pinctrl-5 = <0x89>;
+				pinctrl-0 = <&top_qup1_se4_i2c_active>;
+				pinctrl-1 = <&top_qup1_se4_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se4_spi_active>;
+				pinctrl-3 = <&top_qup1_se4_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se4_uart_active>;
+				pinctrl-5 = <&top_qup1_se4_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s4_clk";
 			};
 
@@ -5120,12 +5120,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x8a>;
-				pinctrl-1 = <0x8b>;
-				pinctrl-2 = <0x8c>;
-				pinctrl-3 = <0x8d>;
-				pinctrl-4 = <0x8e>;
-				pinctrl-5 = <0x8f>;
+				pinctrl-0 = <&top_qup1_se5_i2c_active>;
+				pinctrl-1 = <&top_qup1_se5_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se5_spi_active>;
+				pinctrl-3 = <&top_qup1_se5_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se5_uart_active>;
+				pinctrl-5 = <&top_qup1_se5_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s5_clk";
 			};
 
@@ -5145,12 +5145,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x90>;
-				pinctrl-1 = <0x91>;
-				pinctrl-2 = <0x92>;
-				pinctrl-3 = <0x93>;
-				pinctrl-4 = <0x94>;
-				pinctrl-5 = <0x95>;
+				pinctrl-0 = <&top_qup1_se6_i2c_active>;
+				pinctrl-1 = <&top_qup1_se6_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se6_spi_active>;
+				pinctrl-3 = <&top_qup1_se6_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se6_uart_active>;
+				pinctrl-5 = <&top_qup1_se6_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s6_clk";
 			};
 
@@ -5170,12 +5170,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x96>;
-				pinctrl-1 = <0x97>;
-				pinctrl-2 = <0x98>;
-				pinctrl-3 = <0x99>;
-				pinctrl-4 = <0x9a>;
-				pinctrl-5 = <0x9b>;
+				pinctrl-0 = <&top_qup1_se7_i2c_active>;
+				pinctrl-1 = <&top_qup1_se7_i2c_sleep>;
+				pinctrl-2 = <&top_qup1_se7_spi_active>;
+				pinctrl-3 = <&top_qup1_se7_spi_sleep>;
+				pinctrl-4 = <&top_qup1_se7_uart_active>;
+				pinctrl-5 = <&top_qup1_se7_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap1_s7_clk";
 			};
 		};
@@ -5207,12 +5207,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0x9c>;
-				pinctrl-1 = <0x9d>;
-				pinctrl-2 = <0x9e>;
-				pinctrl-3 = <0x9f>;
-				pinctrl-4 = <0xa0>;
-				pinctrl-5 = <0xa1>;
+				pinctrl-0 = <&top_qup2_se0_i2c_active>;
+				pinctrl-1 = <&top_qup2_se0_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se0_spi_active>;
+				pinctrl-3 = <&top_qup2_se0_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se0_uart_active>;
+				pinctrl-5 = <&top_qup2_se0_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s0_clk";
 			};
 
@@ -5232,12 +5232,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xa2>;
-				pinctrl-1 = <0xa3>;
-				pinctrl-2 = <0xa4>;
-				pinctrl-3 = <0xa5>;
-				pinctrl-4 = <0xa6>;
-				pinctrl-5 = <0xa7>;
+				pinctrl-0 = <&top_qup2_se1_i2c_active>;
+				pinctrl-1 = <&top_qup2_se1_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se1_spi_active>;
+				pinctrl-3 = <&top_qup2_se1_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se1_uart_active>;
+				pinctrl-5 = <&top_qup2_se1_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s1_clk";
 			};
 
@@ -5257,12 +5257,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xa8>;
-				pinctrl-1 = <0xa9>;
-				pinctrl-2 = <0xaa>;
-				pinctrl-3 = <0xab>;
-				pinctrl-4 = <0xac>;
-				pinctrl-5 = <0xad>;
+				pinctrl-0 = <&top_qup2_se2_i2c_active>;
+				pinctrl-1 = <&top_qup2_se2_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se2_spi_active>;
+				pinctrl-3 = <&top_qup2_se2_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se2_uart_active>;
+				pinctrl-5 = <&top_qup2_se2_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s2_clk";
 			};
 
@@ -5282,12 +5282,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xae>;
-				pinctrl-1 = <0xaf>;
-				pinctrl-2 = <0xb0>;
-				pinctrl-3 = <0xb1>;
-				pinctrl-4 = <0xb2>;
-				pinctrl-5 = <0xb3>;
+				pinctrl-0 = <&top_qup2_se3_i2c_active>;
+				pinctrl-1 = <&top_qup2_se3_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se3_spi_active>;
+				pinctrl-3 = <&top_qup2_se3_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se3_uart_active>;
+				pinctrl-5 = <&top_qup2_se3_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s3_clk";
 			};
 
@@ -5307,12 +5307,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xb4>;
-				pinctrl-1 = <0xb5>;
-				pinctrl-2 = <0xb6>;
-				pinctrl-3 = <0xb7>;
-				pinctrl-4 = <0xb8>;
-				pinctrl-5 = <0xb9>;
+				pinctrl-0 = <&top_qup2_se4_i2c_active>;
+				pinctrl-1 = <&top_qup2_se4_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se4_spi_active>;
+				pinctrl-3 = <&top_qup2_se4_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se4_uart_active>;
+				pinctrl-5 = <&top_qup2_se4_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s4_clk";
 			};
 
@@ -5332,12 +5332,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xba>;
-				pinctrl-1 = <0xbb>;
-				pinctrl-2 = <0xbc>;
-				pinctrl-3 = <0xbd>;
-				pinctrl-4 = <0xbe>;
-				pinctrl-5 = <0xbf>;
+				pinctrl-0 = <&top_qup2_se5_i2c_active>;
+				pinctrl-1 = <&top_qup2_se5_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se5_spi_active>;
+				pinctrl-3 = <&top_qup2_se5_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se5_uart_active>;
+				pinctrl-5 = <&top_qup2_se5_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s5_clk";
 			};
 
@@ -5357,12 +5357,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xc0>;
-				pinctrl-1 = <0xc1>;
-				pinctrl-2 = <0xc2>;
-				pinctrl-3 = <0xc3>;
-				pinctrl-4 = <0xc4>;
-				pinctrl-5 = <0xc5>;
+				pinctrl-0 = <&top_qup2_se6_i2c_active>;
+				pinctrl-1 = <&top_qup2_se6_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se6_spi_active>;
+				pinctrl-3 = <&top_qup2_se6_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se6_uart_active>;
+				pinctrl-5 = <&top_qup2_se6_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s6_clk";
 			};
 
@@ -5382,12 +5382,12 @@
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";
-				pinctrl-0 = <0xc6>;
-				pinctrl-1 = <0xc7>;
-				pinctrl-2 = <0xc8>;
-				pinctrl-3 = <0xc9>;
-				pinctrl-4 = <0xca>;
-				pinctrl-5 = <0xcb>;
+				pinctrl-0 = <&top_qup2_se7_i2c_active>;
+				pinctrl-1 = <&top_qup2_se7_i2c_sleep>;
+				pinctrl-2 = <&top_qup2_se7_spi_active>;
+				pinctrl-3 = <&top_qup2_se7_spi_sleep>;
+				pinctrl-4 = <&top_qup2_se7_uart_active>;
+				pinctrl-5 = <&top_qup2_se7_uart_sleep>;
 				se_clock = "gcc_qupv3_wrap2_s7_clk";
 			};
 		};
