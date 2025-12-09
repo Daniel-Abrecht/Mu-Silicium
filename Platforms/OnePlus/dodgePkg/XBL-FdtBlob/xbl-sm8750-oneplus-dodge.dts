@@ -5116,7 +5116,7 @@
 				core_irq = [00 00];
 				pdc_irq = [00 00];
 				gpio_int_num = [00 00];
-				i2c_hub = [00];
+				i2c_hub = [01];
 				i2c_mm = [00];
 				SE_EXCLUSIVE = [01];
 				pinctrl-names = "i2c-default\0i2c-sleep\0spi-default\0spi-sleep\0uart-default\0uart-sleep";

@@ -6,6 +6,7 @@
 typedef struct _SpiDeviceParameters {
   int clock_mode;
   int clock_polarity;
+  int shift_mode;
   UINT32 deassertion_time;
   UINT32 min_frequency_hz;
   UINT32 max_frequency_hz;
@@ -65,6 +66,19 @@ SPIIRConDxeInit (
 
   int instance = 16;
 
+  SpiDeviceInfo dev_info = {
+    .parameters = {
+      .max_frequency_hz = 5000000, /* 50000000 (one more zero)? 10000000? */
+      //.min_frequency_hz = 1000000,
+    },
+    .board_info = {
+      .slave_number = 0,
+    },
+    .transfer = {
+      .num_bits_per_transfer = 8,
+    }
+  };
+
   DEBUG ((EFI_D_WARN, "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
 
   // Locate Display Power State Protocol
@@ -81,11 +95,13 @@ SPIIRConDxeInit (
     goto end;
   }
 
-/*  Status = mQcomSPIProtocol->Transfer(instance, &spi_handle);
+  static const UINT8 send_buf[] = "Hello World!";
+
+  Status = mQcomSPIProtocol->Transfer(spi_handle, &dev_info, send_buf, sizeof(send_buf), 0, 0);
   if (Status) {
-    DEBUG ((EFI_D_ERROR, "QcomSPIProtocol::Open failed = %d\n", Status));
-    return Status;
-  }*/
+    DEBUG ((EFI_D_ERROR, "QcomSPIProtocol::Transfer failed = %d\n", Status));
+    goto end;
+  }
 
   Status = mQcomSPIProtocol->Close(spi_handle);
   if (Status) {
