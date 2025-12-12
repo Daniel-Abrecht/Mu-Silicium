@@ -54,6 +54,36 @@ typedef struct _QCOM_SPI_PROTOCOL {
 
 
 
+typedef struct {
+  int pull_down;
+  int pwr_mode;
+  int pin_controlled;
+  int is_enabled;
+  BOOLEAN ok;
+} QCOM_VREG_Status; 
+
+typedef EFI_STATUS (*QCOM_VREG_CONTROL)(UINT32 pmic_index, int vreg_id, BOOLEAN enable);
+typedef EFI_STATUS (*QCOM_VREG_SET_LEVEL)(UINT32 pmic_index, int vreg_id, UINT32 millivolt);
+typedef EFI_STATUS (*QCOM_VREG_SET_PWR_MODE)(UINT32 pmic_index, int vreg_id, int sw_mode);
+typedef EFI_STATUS (*QCOM_VREG_MULTIPHASE_CTRL)(UINT32 pmic_index, int vreg_id, UINT32 phase_count);
+typedef EFI_STATUS (*QCOM_VREG_SET_LEVEL_IN_MICRO_VOLT)(UINT32 pmic_index, int vreg_id, UINT32 microvolt);
+
+typedef EFI_STATUS (*QCOM_VREG_GET_LEVEL)(UINT32 pmic_index, int vreg_id, UINT32* ret_microvolt);
+typedef EFI_STATUS (*QCOM_VREG_GET_STATUS)(UINT32 PmicDeviceIndex, int vreg_id, QCOM_VREG_Status* ret_status);
+
+typedef struct _QCOM_PMIC_VREG_PROTOCOL {
+  UINT64 Revision;
+  QCOM_VREG_CONTROL                 Control;
+  QCOM_VREG_SET_LEVEL               SetMillivolt;
+  QCOM_VREG_GET_LEVEL               GetMicrovolt;
+  QCOM_VREG_SET_PWR_MODE            SetPwrMode;
+  QCOM_VREG_MULTIPHASE_CTRL         MultiphaseCtrl;
+  QCOM_VREG_GET_STATUS              GetStatus;
+  QCOM_VREG_SET_LEVEL_IN_MICRO_VOLT SetMicrovolt;
+} QCOM_PMIC_VREG_PROTOCOL;
+
+
+
 
 EFI_STATUS
 EFIAPI
@@ -61,10 +91,16 @@ SPIIRConDxeInit (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE *SystemTable)
 {
-  EFI_STATUS                  Status;
+  EFI_STATUS Status;
   QCOM_SPI_PROTOCOL *mQcomSPIProtocol;
+  QCOM_PMIC_VREG_PROTOCOL *mQcomPmicVregProtocol;
 
-  int instance = 16;
+  // ldob9
+  // Note: The proper thing to do would probably be to lookup ldob9 in cmd_db and/or npa, but for now, this has to do.
+  int regulator_pmic = 'b' - 'a';
+  int regulator_index = 9  -  1 ;
+
+  int spi_instance = 16;
 
   SpiDeviceInfo dev_info = {
     .parameters = {
@@ -81,15 +117,57 @@ SPIIRConDxeInit (
 
   DEBUG ((EFI_D_WARN, "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
 
-  // Locate Display Power State Protocol
-  Status = gBS->LocateProtocol (&gQcomSPIProtocolGuid, NULL, (void**)&mQcomSPIProtocol);
+  // Locate Qcom PMIC VREG Protocol
+  Status = gBS->LocateProtocol(&gQcomPmicVregProtocolGuid, NULL, (void**)&mQcomPmicVregProtocol);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "Failed to Locate Qcom PMIC VREG Protocol! Status = %r\n", Status));
+    goto end;
+  }
+  
+  Status = mQcomPmicVregProtocol->SetMicrovolt(regulator_pmic, regulator_index, 3104000);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "QcomPmicVregProtocol::SetMicrovolt failed! Status = %r\n", Status));
+    goto end;
+  }
+
+/*  Status = mQcomPmicVregProtocol->SetPwrMode(regulator_pmic, regulator_index, 4);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "QcomPmicVregProtocol::SetPwrMode failed! Status = %r\n", Status));
+    goto end;
+  }*/
+
+  Status = mQcomPmicVregProtocol->Control(regulator_pmic, regulator_index, TRUE);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "QcomPmicVregProtocol::Control failed! Status = %r\n", Status));
+    goto end;
+  }
+
+  UINT32 microvolt = 0;
+  QCOM_VREG_Status vreg_status = {0};
+
+  Status = mQcomPmicVregProtocol->GetMicrovolt(regulator_pmic, regulator_index, &microvolt);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "QcomPmicVregProtocol::GetMicrovolt failed! Status = %r\n", Status));
+    goto end;
+  }
+
+  Status = mQcomPmicVregProtocol->GetStatus(regulator_pmic, regulator_index, &vreg_status);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "QcomPmicVregProtocol::GetStatus failed! Status = %r\n", Status));
+    goto end;
+  }
+  DEBUG ((EFI_D_WARN, "pull_down=%d pwr_mode=%d pin_controlled=%d is_enabled=%d microvolt=%d\n",
+          vreg_status.pull_down, vreg_status.pwr_mode, vreg_status.pin_controlled, vreg_status.is_enabled, microvolt));
+
+  // Locate Qcom SPI Protocol
+  Status = gBS->LocateProtocol(&gQcomSPIProtocolGuid, NULL, (void**)&mQcomSPIProtocol);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Locate Qcom SPI Protocol! Status = %r\n", Status));
     goto end;
   }
 
   void* spi_handle = 0;
-  Status = mQcomSPIProtocol->Open(instance, &spi_handle);
+  Status = mQcomSPIProtocol->Open(spi_instance, &spi_handle);
   if (Status) {
     DEBUG ((EFI_D_ERROR, "QcomSPIProtocol::Open failed = %d\n", Status));
     goto end;
