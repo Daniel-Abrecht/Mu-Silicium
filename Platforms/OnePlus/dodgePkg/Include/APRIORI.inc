@@ -3,6 +3,8 @@ APRIORI DXE {
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
+  INF QcomPkg/Drivers/ULogDxe/ULogDxe.inf
+
   INF Binaries/dodge/QcomPkg/Drivers/EnvDxe/EnvDxeEnhanced.inf
 
   INF MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
@@ -28,7 +30,7 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/ChipInfoDxe/ChipInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PlatformInfoDxe/PlatformInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/HALIOMMUDxe/HALIOMMUDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
+  #INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/IPCCDxe/IPCCDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/CmdDbDxe/CmdDbDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PwrUtilsDxe/PwrUtilsDxe.inf
