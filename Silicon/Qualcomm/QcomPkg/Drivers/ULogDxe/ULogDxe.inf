@@ -21,6 +21,7 @@
 
 [Protocols]
   gEfiULogProtocolGuid
+  gULogCtlProtocolGuid
 
 [Depex]
   TRUE

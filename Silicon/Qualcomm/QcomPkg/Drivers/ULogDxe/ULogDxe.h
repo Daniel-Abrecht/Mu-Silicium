@@ -1,3 +1,6 @@
+#ifndef ULOG_PROTOCOL_H
+#define ULOG_PROTOCOL_H
+
 #include <Library/DebugLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 
@@ -100,3 +103,5 @@ typedef struct _EFI_ULOG_PROTOCOL {
 
   ULOG_DUMMY f38;
 } EFI_ULOG_PROTOCOL;
+
+#endif
