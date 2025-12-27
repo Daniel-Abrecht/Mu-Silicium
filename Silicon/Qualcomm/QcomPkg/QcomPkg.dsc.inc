@@ -50,6 +50,7 @@
   QcomPkg/Drivers/DisplayReEnablerDxe/DisplayReEnablerDxe.inf
   QcomPkg/Drivers/PeripheralInitDxe/PeripheralInitDxe.inf
   QcomPkg/Drivers/SPIIRConDxe/SPIIRConDxe.inf
+  QcomPkg/Drivers/ULogDxe/ULogDxe.inf
 
   #
   # Custom Apps

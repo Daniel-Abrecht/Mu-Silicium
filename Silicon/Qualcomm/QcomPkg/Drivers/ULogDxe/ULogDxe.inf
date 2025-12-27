@@ -1,13 +1,14 @@
 [Defines]
   INF_VERSION                    = 0x0010005
-  BASE_NAME                      = SPIIRConDxe
-  FILE_GUID                      = 93914739-85A4-4620-8260-682BE69F711B
+  BASE_NAME                      = ULogDxe
+  FILE_GUID                      = fe9d7f27-3d24-4dea-9bc4-50e3bee5539a
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
-  ENTRY_POINT                    = SPIIRConDxeInit
+  ENTRY_POINT                    = ULogDxeInit
 
 [Sources]
-  SPIIRConDxe.c
+  ULogDxe.c
+  mysnprintf.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -19,11 +20,7 @@
   UefiBootServicesTableLib
 
 [Protocols]
-  gQcomSPIProtocolGuid
-  gQcomPmicVregProtocolGuid
-  gEfiNpaProtocolGuid
-  #gQcomPmicGpioProtocolGuid
-  gEfiTLMMProtocolGuid
+  gEfiULogProtocolGuid
   gULogCtlProtocolGuid
 
 [Depex]

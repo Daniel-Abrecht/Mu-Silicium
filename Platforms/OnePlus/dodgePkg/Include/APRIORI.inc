@@ -4,6 +4,8 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
   INF QcomPkg/Drivers/XblDeviceTreeDxe/XblDeviceTreeDxe.inf
 
+  INF QcomPkg/Drivers/ULogDxe/ULogDxe.inf
+
   INF Binaries/dodge/QcomPkg/Drivers/EnvDxe/EnvDxeEnhanced.inf
 
   INF MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
@@ -29,7 +31,7 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/ChipInfoDxe/ChipInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PlatformInfoDxe/PlatformInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/HALIOMMUDxe/HALIOMMUDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
+  #INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/IPCCDxe/IPCCDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/CmdDbDxe/CmdDbDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PwrUtilsDxe/PwrUtilsDxe.inf
@@ -89,6 +91,7 @@ APRIORI DXE {
   INF MdeModulePkg/Universal/HiiDatabaseDxe/HiiDatabaseDxe.inf
   INF MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
 
+  INF Binaries/dodge/QcomPkg/Drivers/GpiDxe/GpiDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/SPIDxe/SPIDxe.inf
   INF QcomPkg/Drivers/SPIIRConDxe/SPIIRConDxe.inf
 
@@ -124,7 +127,6 @@ APRIORI DXE {
 !if $(USE_CUSTOM_DRIVER) == 1
   INF Binaries/dodge/QcomPkg/Drivers/CPRDxe/CPRDxe.inf
 !endif
-  INF Binaries/dodge/QcomPkg/Drivers/GpiDxe/GpiDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/UCDxe/UCDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/RNGDxe/RngDxe.inf
 

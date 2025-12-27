@@ -1,6 +1,8 @@
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
+  INF QcomPkg/Drivers/ULogDxe/ULogDxe.inf
+
   INF Binaries/dodge/QcomPkg/Drivers/EnvDxe/EnvDxeEnhanced.inf
 
   INF MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
@@ -52,7 +54,7 @@
   INF Binaries/dodge/QcomPkg/Drivers/PwrUtilsDxe/PwrUtilsDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/RpmhDxe/RpmhDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/NpaDxe/NpaDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
+  #INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/MailboxDxe/MailboxDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/QcomScmiDxe/QcomScmiDxe.inf
   #INF Binaries/dodge/QcomPkg/Drivers/CalibrationDxe/CalibrationDxe.inf
