@@ -5499,10 +5499,10 @@
 			compatible = "qcom,usb";
 
 			usb_overwrite_cfg {
-				status = "disabled";
+				status = "okay";
 				max_device_speed = <0x05>;
 				cc_lane = <0x00>;
-				usb_mode = <0x03>;
+				usb_mode = <0x01>;
 				slt_enable = <0x00>;
 			};
 
