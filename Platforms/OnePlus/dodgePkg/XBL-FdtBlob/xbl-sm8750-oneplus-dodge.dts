@@ -5502,7 +5502,7 @@
 				status = "okay";
 				max_device_speed = <0x05>;
 				cc_lane = <0x00>;
-				usb_mode = <0x01>;
+				usb_mode = <0x03>;
 				slt_enable = <0x00>;
 			};
 

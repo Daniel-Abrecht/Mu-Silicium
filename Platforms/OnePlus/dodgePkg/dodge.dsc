@@ -73,5 +73,6 @@
 
 [Components]
   QcomPkg/Drivers/XblDeviceTreeDxe/XblDeviceTreeDxe.inf
+  PakalaPkg/Drivers/TypeCHelperDxe/TypeCHelperDxe.inf
 
 !include PakalaPkg/PakalaPkg.dsc.inc

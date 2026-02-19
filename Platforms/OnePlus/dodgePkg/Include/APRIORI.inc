@@ -50,6 +50,8 @@ APRIORI DXE {
 
   INF MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
 
+  INF PakalaPkg/Drivers/TypeCHelperDxe/TypeCHelperDxe.inf
+
   INF Binaries/dodge/QcomPkg/Drivers/PmicDxe/PmicDxeLa.inf
 
   INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf

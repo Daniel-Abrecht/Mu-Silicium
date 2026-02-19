@@ -55,6 +55,8 @@
   INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/MailboxDxe/MailboxDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/QcomScmiDxe/QcomScmiDxe.inf
+  INF PakalaPkg/Drivers/TypeCHelperDxe/TypeCHelperDxe.inf
+
   #INF Binaries/dodge/QcomPkg/Drivers/CalibrationDxe/CalibrationDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/VcsDxe/VcsDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/ClockDxe/ClockDxe.inf
