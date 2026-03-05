@@ -20,6 +20,8 @@
 
 [Protocols]
   gQcomSPMIProtocolGuid
+  gPmicGlinkProtocolGuid
+  gEfiPilProtocolGuid
 
 [Depex]
   TRUE

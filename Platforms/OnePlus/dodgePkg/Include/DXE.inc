@@ -5,7 +5,8 @@
 
   INF MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
   INF MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe.inf
-  INF ArmPkg/Drivers/CpuDxe/CpuDxe.inf
+  INF Binaries/dodge/ArmPkg/Drivers/CpuDxe/CpuDxe.inf
+#  INF ArmPkg/Drivers/CpuDxe/CpuDxe.inf
   INF MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
   INF MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
 
@@ -26,8 +27,11 @@
   INF Binaries/dodge/QcomPkg/Drivers/FontDxe/FontDxe.inf
   #INF Binaries/dodge/QcomPkg/Drivers/QcomWDogDxe/QcomWDogDxe.inf 
 
-  INF ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
-  INF ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+  INF Binaries/dodge/ArmPkg/Drivers/ArmGic/ArmGicDxe.inf
+#  INF ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
+
+  #INF ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+  INF Binaries/dodge/ArmPkg/Drivers/TimerDxe/TimerDxe.inf
 
   INF Binaries/dodge/QcomPkg/Drivers/ChipInfoDxe/ChipInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PlatformInfoDxe/PlatformInfoDxe.inf
@@ -95,7 +99,7 @@
   INF Binaries/dodge/QcomPkg/Drivers/ButtonsDxe/ButtonsDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/ChargerExDxe/ChargerExDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/IPCCDxe/IPCCDxe.inf
-  #INF Binaries/dodge/QcomPkg/Drivers/GLinkDxe/GLinkDxe.inf
+  INF Binaries/dodge/QcomPkg/Drivers/GLinkDxe/GLinkDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/OcdtDxe/OplusProject.inf
   INF Binaries/dodge/QcomPkg/Drivers/OplusS4ResetDxe/OplusS4ResetDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PmicGlinkDxe/PmicGlinkDxe.inf

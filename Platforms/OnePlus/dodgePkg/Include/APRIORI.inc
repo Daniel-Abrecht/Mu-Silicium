@@ -13,12 +13,15 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/QcomWDogDxe/QcomWDogDxe.inf
 
   # Next, install cpu protocol and enable the interrupt controller
-  INF ArmPkg/Drivers/CpuDxe/CpuDxe.inf
-  INF ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
+  INF Binaries/dodge/ArmPkg/Drivers/CpuDxe/CpuDxe.inf
+  INF Binaries/dodge/ArmPkg/Drivers/ArmGic/ArmGicDxe.inf
+#  INF ArmPkg/Drivers/CpuDxe/CpuDxe.inf
+#  INF ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
 
   # Core Drivers
   INF EmbeddedPkg/MetronomeDxe/MetronomeDxe.inf
-  INF ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+  #INF ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+  INF Binaries/dodge/ArmPkg/Drivers/TimerDxe/TimerDxe.inf
 
   INF Binaries/dodge/QcomPkg/Drivers/SmemDxe/SmemDxe.inf
 
@@ -49,8 +52,6 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/SPMIDxe/SPMIDxe.inf
 
   INF MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
-
-  INF PakalaPkg/Drivers/TypeCHelperDxe/TypeCHelperDxe.inf
 
   INF Binaries/dodge/QcomPkg/Drivers/PmicDxe/PmicDxeLa.inf
 
@@ -104,6 +105,8 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/UsbfnDwc3Dxe/UsbfnDwc3Dxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciPciEmulationDxe/XhciPciEmulationDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciDxe/XhciDxe.inf
+
+  INF PakalaPkg/Drivers/TypeCHelperDxe/TypeCHelperDxe.inf
 
   INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
