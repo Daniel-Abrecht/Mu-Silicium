@@ -1,5 +1,6 @@
 #include <Library/DebugLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Protocol/ULogCtl.h>
 
 #include "pmic_typec.h"
 #include "EFISPMI.h"
@@ -8,6 +9,7 @@
 
 extern EFI_GUID gEfiPilProtocolGuid;
 extern EFI_GUID gPmicGlinkProtocolGuid;
+extern EFI_GUID gULogCtlProtocolGuid;
 EFI_QCOM_SPMI_PROTOCOL *mQcomSPMIProtocol;
 
 #define UCSI_CMD_SET_CCOM 0x08
@@ -48,7 +50,7 @@ typedef struct _EFI_PIL_PROTOCOL {
   EFI_STATUS (EFIAPI *ProcessPilImage) (IN CHAR16* Subsys);
 } EFI_PIL_PROTOCOL;
 
-/*
+
 STATIC VOID EFIAPI Poll(IN EFI_EVENT Event, IN VOID *Context)
 {
   // EFI_STATUS Status;
@@ -87,7 +89,7 @@ STATIC VOID EFIAPI Poll(IN EFI_EVENT Event, IN VOID *Context)
 
 error:;
 }
-*/
+
 
 #define CCI_BIT_end_of_message_indicator(CCI)   (1<<0)
 #define CCI_get_connector_change_indicator(CCI) (((CCI)>>1)&0x7F)
@@ -129,12 +131,36 @@ EFI_STATUS EFIAPI Main(
 
   DEBUG((EFI_D_WARN, "\n\n\n\n\n\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
 
-  // Locate Display Power State Protocol
+  static EFI_ULOG_CTL_PROTOCOL* mULogCtl;
+  Status = gBS->LocateProtocol (&gULogCtlProtocolGuid, NULL, (VOID *)&mULogCtl);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "Failed to Locate ULogCtl Protocol! Status = %r\n", Status));
+    goto error;
+  }
+  mULogCtl->EnableLog(ULOGCTL_ANY_LOG, 1);
+
   Status = gBS->LocateProtocol (&gQcomSPMIProtocolGuid, NULL, (VOID *)&mQcomSPMIProtocol);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Locate Qcom SPMI Protocol! Status = %r\n", Status));
     goto error;
   }
+
+  static EFI_EVENT PollEvt;
+  Status = gBS->CreateEvent(
+    EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
+    Poll, NULL, &PollEvt
+  );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "Failed to create TypeCHelper poll Event! Status = %r\n", Status));
+    goto error;
+  }
+
+  Status = gBS->SetTimer(PollEvt, TimerPeriodic, 1000000);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "TypeCHelper SetTimer failed! Status = %r\n", Status));
+    goto error;
+  }
+  gBS->SignalEvent(PollEvt);
 
   {
     UINT8 data[1] = {0};
@@ -171,6 +197,7 @@ EFI_STATUS EFIAPI Main(
     DEBUG ((EFI_D_ERROR, "ProcessPilImage Failed! Status = %r\n", Status));
   }
 
+  gBS->Stall(7*1000000);
   DEBUG ((EFI_D_WARN, "mPmicGlinkProtocol->Connect\n"));
 
   {
@@ -297,31 +324,14 @@ EFI_STATUS EFIAPI Main(
     DEBUG((EFI_D_WARN, "TYPEC regs TYPEC_MODE_CFG_REG (0x44): %02X\n", data[0], len));
   }
 
-/*
-  static EFI_EVENT PollEvt;
-  Status = gBS->CreateEvent(
-    EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
-    Poll, NULL, &PollEvt
-  );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "Failed to create TypeCHelper poll Event! Status = %r\n", Status));
-    goto error;
-  }
-
-  Status = gBS->SetTimer(PollEvt, TimerPeriodic, 1000000);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "TypeCHelper SetTimer failed! Status = %r\n", Status));
-    goto error;
-  }
-  gBS->SignalEvent(PollEvt);
-*/
-
+  mULogCtl->EnableLog(ULOGCTL_ANY_LOG, 0);
   DEBUG((EFI_D_WARN, "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
-  gBS->Stall(1000000);
+  gBS->Stall(5*1000000);
   return EFI_SUCCESS;
 
 error:
+  mULogCtl->EnableLog(ULOGCTL_ANY_LOG, 0);
   DEBUG((EFI_D_WARN, "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
-  gBS->Stall(1000000);
+  gBS->Stall(5*1000000);
   return Status;
 }

@@ -22,6 +22,7 @@
   gQcomSPMIProtocolGuid
   gPmicGlinkProtocolGuid
   gEfiPilProtocolGuid
+  gULogCtlProtocolGuid
 
 [Depex]
   TRUE
