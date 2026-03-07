@@ -51,7 +51,7 @@ typedef struct _EFI_PIL_PROTOCOL {
 } EFI_PIL_PROTOCOL;
 
 
-STATIC VOID EFIAPI Poll(IN EFI_EVENT Event, IN VOID *Context)
+/*STATIC VOID EFIAPI Poll(IN EFI_EVENT Event, IN VOID *Context)
 {
   // EFI_STATUS Status;
 
@@ -88,7 +88,7 @@ STATIC VOID EFIAPI Poll(IN EFI_EVENT Event, IN VOID *Context)
   }
 
 error:;
-}
+}*/
 
 
 #define CCI_BIT_end_of_message_indicator(CCI)   (1<<0)
@@ -145,7 +145,7 @@ EFI_STATUS EFIAPI Main(
     goto error;
   }
 
-  static EFI_EVENT PollEvt;
+/*  static EFI_EVENT PollEvt;
   Status = gBS->CreateEvent(
     EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
     Poll, NULL, &PollEvt
@@ -160,7 +160,7 @@ EFI_STATUS EFIAPI Main(
     DEBUG ((EFI_D_ERROR, "TypeCHelper SetTimer failed! Status = %r\n", Status));
     goto error;
   }
-  gBS->SignalEvent(PollEvt);
+  gBS->SignalEvent(PollEvt);*/
 
   {
     UINT8 data[1] = {0};
@@ -182,12 +182,12 @@ EFI_STATUS EFIAPI Main(
     goto error;
   }
 
-  EFI_PMIC_GLINK_PROTOCOL* mPmicGlinkProtocol;
+/*  EFI_PMIC_GLINK_PROTOCOL* mPmicGlinkProtocol;
   Status = gBS->LocateProtocol (&gPmicGlinkProtocolGuid, NULL, (VOID *)&mPmicGlinkProtocol);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Locate Qcom PMIC glink Protocol! Status = %r\n", Status));
     goto error;
-  }
+  }*/
 
   DEBUG ((EFI_D_WARN, "PILProtocol->ProcessPilImage\n"));
 
@@ -198,7 +198,7 @@ EFI_STATUS EFIAPI Main(
   }
 
   gBS->Stall(7*1000000);
-  DEBUG ((EFI_D_WARN, "mPmicGlinkProtocol->Connect\n"));
+  /*DEBUG ((EFI_D_WARN, "mPmicGlinkProtocol->Connect\n"));
 
   {
     EFI_STATUS Status = mPmicGlinkProtocol->Connect();
@@ -296,7 +296,7 @@ EFI_STATUS EFIAPI Main(
       DEBUG((EFI_D_ERROR, "UCSI_CMD_SET_UOR Failed\r\n"));
       // goto error;
     }
-  }
+  }*/
 
 /*  
   {
@@ -311,7 +311,8 @@ EFI_STATUS EFIAPI Main(
     }
   }
 */
-  {
+  DEBUG((EFI_D_WARN, "Waiting for TYPEC regs TYPEC_MODE_CFG_REG (0x44) to be set to 0x10 by the adsp\n"));
+  while(1){
     UINT8 data[1] = {0};
     UINT32 len = 1;
     Spmi_Result result = mQcomSPMIProtocol->ReadLong(mQcomSPMIProtocol,
@@ -321,12 +322,16 @@ EFI_STATUS EFIAPI Main(
       DEBUG ((EFI_D_ERROR, "QcomSPMIProtocol->ReadLong failed! Status = %d\n", result));
       goto error;
     }
-    DEBUG((EFI_D_WARN, "TYPEC regs TYPEC_MODE_CFG_REG (0x44): %02X\n", data[0], len));
+    // DEBUG((EFI_D_WARN, "TYPEC regs TYPEC_MODE_CFG_REG (0x44): %02X\n", data[0], len));
+    if(data[0] == 0x10)
+      break;
+
+    gBS->Stall(100000);
   }
 
   mULogCtl->EnableLog(ULOGCTL_ANY_LOG, 0);
   DEBUG((EFI_D_WARN, "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\n"));
-  gBS->Stall(5*1000000);
+  //gBS->Stall(5*1000000);
   return EFI_SUCCESS;
 
 error:
