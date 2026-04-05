@@ -6,6 +6,7 @@
 #define SNK_DAM_500MA          (1<<6)
 #define SNK_DAM_1500MA         (1<<5)
 #define SNK_DAM_3000MA         (1<<4)
+#define SNK_RP_MASK            0x0F
 #define SNK_RP_STD             (1<<3)
 #define SNK_RP_1P5             (1<<2)
 #define SNK_RP_3P0             (1<<1)
