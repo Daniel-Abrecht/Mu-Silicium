@@ -11,6 +11,8 @@
 #define WAIT_TIMEOUT 2000 * 1000
 
 extern EFI_GUID gGlinkHelperProtocolGuid;
+static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol;
+
 extern EFI_GUID gGlinkProtocolGuid;
 GLINK_PROTOCOL* mGlinkProtocol;
 
@@ -38,6 +40,37 @@ struct link_full {
   struct channel_full* channel_list;
 };
 
+struct battery_charger_response_wait_list {
+  struct battery_charger_response_wait_list* next;
+  struct battery_charger_request_msg msg;
+  volatile BOOLEAN done;
+  void* data;
+  UINTN size;
+};
+
+static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout_us, volatile BOOLEAN* done){
+  if(!timeout_us)
+    timeout_us = WAIT_TIMEOUT;
+  if(timeout_us <= RETRY_TIME)
+    timeout_us = RETRY_TIME+1;
+  // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
+  // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
+  // overflow to worry about being that of the integer type. But there seams to be nothing like that in UEFI!?!
+  UINT64 elapsed = 0;
+  while(TRUE){
+    glink_error_t error = 0;
+    EFI_STATUS status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+    if(!EFI_ERROR(status) && error == 0 && *done)
+      return timeout_us-elapsed;
+    if(elapsed >= timeout_us-RETRY_TIME)
+      break;
+    gBS->Stall(RETRY_TIME);
+    elapsed += RETRY_TIME;
+  }
+  return FALSE;
+}
+
+
 static UINT64 wait_link(struct link_full* link, UINT64 timeout_us){
   // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
   // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
@@ -64,24 +97,13 @@ static UINT64 wait_channel(struct channel_full* ch, UINT64 timeout_us){
   if(!ch->public.link->is_link_up)
     if(!wait_link(BASE_CR(ch->public.link, struct link_full, public), timeout_us))
       return FALSE;
-  // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
-  // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
-  // overflow to worry about being that of the integer type. But there seams to be nothing like that in UEFI!?!
-  UINT64 elapsed = 0;
-  while(TRUE){
-    glink_error_t error = 0;
-    EFI_STATUS status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
-    if(!EFI_ERROR(status) && error == 0 && ch->public.is_channel_open){
-      DEBUG((EFI_D_WARN, "glink::wait_channel: channel is up\n"));
-      return timeout_us-elapsed;
-    }
-    if(elapsed >= timeout_us-RETRY_TIME)
-      break;
-    gBS->Stall(RETRY_TIME);
-    elapsed += RETRY_TIME;
+  UINT64 x = glink_helper_poll_internal(ch, timeout_us, &ch->public.is_channel_open);
+  if(x){
+    DEBUG((EFI_D_WARN, "glink::wait_channel: channel is up\n"));
+  }else{
+    DEBUG((EFI_D_ERROR, "glink::wait_channel: channel did not come up!\n"));
   }
-  DEBUG((EFI_D_ERROR, "glink::wait_channel: channel did not come up!\n"));
-  return FALSE;
+  return x;
 }
 
 static struct link_full* link_list;
@@ -258,12 +280,54 @@ static void EFIAPI onlink(struct glink_link_info* info, void* priv){
   l->public.is_link_up = info->state == GLINK_LINK_STATE_UP;
 }
 
+static void hexdump(const void* vdata, unsigned size){
+  const UINT8* data = vdata;
+  static const char digits[] = "0123456789ABCDEF ";
+  for(unsigned i=0; i<size; i+=16){
+    char line[] = "                                                  |                  ";
+    for(unsigned j=0; j<16 && i+j<size; j++){
+      UINT8 ch = data[i+j];
+      int off = j*3 + (j>=8);
+      line[off+1] = digits[ch/16];
+      line[off+2] = digits[ch%16];
+      if(ch < 0x7F && ch >= 0x20){
+        line[52+j + (j>=8)] = ch;
+      }else{
+        line[52+j + (j>=8)] = '.';
+      }
+    }
+    DEBUG((EFI_D_WARN, " %a\n", line));
+  }
+}
+
+static struct battery_charger_response_wait_list* bcr_wait_list;
+
 static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv_receive_intent, void* data, UINTN size, UINTN intent_used){
   struct channel_full* ch = priv_open;
   DEBUG((EFI_D_WARN, "Glink onreceive: \"%a\", remote: \"%a\", channel: \"%a\", size: %d\n",
     ch->public.link->xport, ch->public.link->remote, ch->public.channel_name,
     size
   ));
+  hexdump(data, size);
+  if(size >= sizeof(struct battery_charger_response_msg)){
+    struct battery_charger_response_msg* msg = data;
+    for(struct battery_charger_response_wait_list** it=&bcr_wait_list; *it; it=&(*it)->next){
+      struct battery_charger_response_wait_list* e = *it;
+      if( e->msg.hdr.owner  != msg->hdr.owner
+       || e->msg.hdr.type   != msg->hdr.type
+       || e->msg.hdr.opcode != msg->hdr.opcode
+      ) continue;
+      if(e->msg.property_id != msg->property_id)
+        continue;
+      e->done = TRUE;
+      if(e->size > size)
+        e->size = size;
+      if(e->data)
+        gBS->CopyMem(e->data, data, e->size);
+      *it = e->next;
+      break;
+    }
+  }
   for(struct descriptor_full* it=ch->descriptor_list; it; it=it->next)
     if(it->public.p.onreceive)
       it->public.p.onreceive(&it->public, data, size);
@@ -300,8 +364,9 @@ static void EFIAPI onstatechange(glink_handle_t* handle, void* priv_open, enum g
   }
 }
 
-static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d){
-  return wait_channel(BASE_CR(d->channel, struct channel_full, public), WAIT_TIMEOUT) ? EFI_SUCCESS : EFI_DEVICE_ERROR;
+static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d, UINT64 timeout_us, volatile BOOLEAN* done){
+  struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
+  return glink_helper_poll_internal(ch, timeout_us, done) ? EFI_SUCCESS : EFI_TIMEOUT;
 }
 
 static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const void* data, UINTN size){
@@ -332,12 +397,47 @@ error_timeout:
   return EFI_DEVICE_ERROR;
 }
 
-GLINK_HELPER_PROTOCOL mGlinkHelperProtocol = {
-  .open = glink_helper_open,
-  .close = glink_helper_close,
-  .send_sync = glink_helper_send_sync,
-  .poll = glink_helper_poll,
-};
+static EFI_STATUS EFIAPI glink_helper_charger_send_sync(
+  glh_descriptor_t* d, UINT32 opcode, UINT32 property, UINT32 value,
+  void* response, UINTN* response_size
+){
+  struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
+  EFI_STATUS Status = 0;
+  struct battery_charger_response_wait_list object = {
+    .next = bcr_wait_list,
+    .msg = {
+      .hdr = {
+        .owner = MSG_OWNER_CHARGER,
+        .type = MSG_TYPE_REQ_RESP,
+        .opcode = opcode,
+      },
+      .property_id = property,
+      .value = value,
+    },
+    .data = response,
+    .size = response_size ? *response_size : 0,
+  };
+  bcr_wait_list = &object;
+  Status = glink_helper_send_sync(d, &object.msg, sizeof(object.msg));
+  if(EFI_ERROR(Status)){
+    DEBUG((EFI_D_ERROR, "charger_write_property_sync: send_sync failed. opcode: %d property: %d value %d\n", opcode, property, value));
+    goto error;
+  }
+  Status = glink_helper_poll_internal(ch, WAIT_TIMEOUT, &object.done);
+  if(EFI_ERROR(Status)){
+    DEBUG((EFI_D_ERROR, "charger_write_property_sync: glink_helper_poll failed. opcode: %d property: %d value %d\n", opcode, property, value));
+    goto error;
+  }
+  for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
+    if(*it == &object){ *it = object.next; break; }
+  if(response_size)
+    *response_size = object.size;
+  return EFI_SUCCESS;
+error:
+  for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
+    if(*it == &object){ *it = object.next; break; }
+  return Status;
+}
 
 EFI_STATUS EFIAPI glink_helper_init(
   IN EFI_HANDLE        ImageHandle,
@@ -361,3 +461,13 @@ EFI_STATUS EFIAPI glink_helper_init(
 error:
   return Status;
 }
+
+
+static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol = {
+  .open = glink_helper_open,
+  .close = glink_helper_close,
+  .send_sync = glink_helper_send_sync,
+  .poll = glink_helper_poll,
+  .charger_send_sync = glink_helper_charger_send_sync,
+};
+
