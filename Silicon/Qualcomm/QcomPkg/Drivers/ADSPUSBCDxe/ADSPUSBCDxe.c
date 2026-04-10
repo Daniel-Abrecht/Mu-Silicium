@@ -123,23 +123,23 @@ EFI_STATUS EFIAPI Main(
   }
 
 
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_OTG_AP_ENABLE, 1, 0, 0);
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_AP_ENABLE, 1);
   DEBUG ((EFI_D_WARN, "USB_OTG_AP_ENABLE: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_OEM_MISC_CTL, 0x51, 0, 0);
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OEM_MISC_CTL, 0x51);
   DEBUG ((EFI_D_WARN, "USB_OEM_MISC_CTL: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_TYPEC_SINKONLY, 0, 0, 0);
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_TYPEC_SINKONLY, 0);
   DEBUG ((EFI_D_WARN, "USB_TYPEC_SINKONLY: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_TYPEC_MODE, 0, 0, 0); // 0=DRP, 1=SNK, 2=SRC
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_TYPEC_MODE, 0); // 0=DRP, 1=SNK, 2=SRC
   DEBUG ((EFI_D_WARN, "USB_TYPEC_MODE: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_CCDETECT_HAPPENED, 1, 0, 0);
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_CCDETECT_HAPPENED, 1);
   DEBUG ((EFI_D_WARN, "USB_CCDETECT_HAPPENED: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_OTG_SWITCH, 1, 0, 0);
+  gBS->Stall(100*1000);
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_SWITCH, 1);
   DEBUG ((EFI_D_WARN, "USB_OTG_SWITCH: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_OTG_VBUS_REGULATOR_ENABLE, 1, 0, 0);
-  DEBUG ((EFI_D_WARN, "USB_OTG_VBUS_REGULATOR_ENABLE: %r\n", Status));
-  // Status = mGlinkHelperProtocol->charger_send_sync(glhd, MSG_OP_CHARGER_USB_STATUS_SET, USB_OTG_BOOST_CURRENT, 1000, 0, 0); // current limit in mA. Default value is 0, not sure what that means.
+  // Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_BOOST_CURRENT, 1000); // current limit in mA. Default value is 0, not sure what that means.
   // DEBUG ((EFI_D_WARN, "USB_OTG_BOOST_CURRENT: %r\n", Status));
-
+  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_VBUS_REGULATOR_ENABLE, 1);
+  DEBUG ((EFI_D_WARN, "USB_OTG_VBUS_REGULATOR_ENABLE: %r\n", Status));
 
   mGlinkHelperProtocol->close(glhd);
 

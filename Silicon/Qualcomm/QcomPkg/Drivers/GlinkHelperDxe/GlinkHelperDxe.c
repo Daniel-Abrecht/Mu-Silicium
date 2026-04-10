@@ -42,10 +42,11 @@ struct link_full {
 
 struct battery_charger_response_wait_list {
   struct battery_charger_response_wait_list* next;
-  struct battery_charger_request_msg msg;
+  const struct glink_hdr* request;
+  UINTN request_size;
+  struct glink_hdr* response;
+  UINTN response_size;
   volatile BOOLEAN done;
-  void* data;
-  UINTN size;
 };
 
 static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout_us, volatile BOOLEAN* done){
@@ -280,6 +281,7 @@ static void EFIAPI onlink(struct glink_link_info* info, void* priv){
   l->public.is_link_up = info->state == GLINK_LINK_STATE_UP;
 }
 
+/*
 static void hexdump(const void* vdata, unsigned size){
   const UINT8* data = vdata;
   static const char digits[] = "0123456789ABCDEF ";
@@ -299,38 +301,48 @@ static void hexdump(const void* vdata, unsigned size){
     DEBUG((EFI_D_WARN, " %a\n", line));
   }
 }
+*/
 
 static struct battery_charger_response_wait_list* bcr_wait_list;
 
 static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv_receive_intent, void* data, UINTN size, UINTN intent_used){
   struct channel_full* ch = priv_open;
+  /*
   DEBUG((EFI_D_WARN, "Glink onreceive: \"%a\", remote: \"%a\", channel: \"%a\", size: %d\n",
     ch->public.link->xport, ch->public.link->remote, ch->public.channel_name,
     size
   ));
   hexdump(data, size);
-  if(size >= sizeof(struct battery_charger_response_msg)){
-    struct battery_charger_response_msg* msg = data;
-    for(struct battery_charger_response_wait_list** it=&bcr_wait_list; *it; it=&(*it)->next){
-      struct battery_charger_response_wait_list* e = *it;
-      if( e->msg.hdr.owner  != msg->hdr.owner
-       || e->msg.hdr.type   != msg->hdr.type
-       || e->msg.hdr.opcode != msg->hdr.opcode
-      ) continue;
-      if(e->msg.property_id != msg->property_id)
+  */
+  if(size < sizeof(struct glink_hdr)){
+    DEBUG((EFI_D_ERROR, "Glink onreceive: response is too short!"));
+    return;
+  }
+  struct glink_hdr* response = data;
+  for(struct battery_charger_response_wait_list** it=&bcr_wait_list; *it; it=&(*it)->next){
+    struct battery_charger_response_wait_list* e = *it;
+    if( e->request->owner  != response->owner
+     || e->request->type   != response->type
+     || e->request->opcode != response->opcode
+    ) continue;
+    if( response->opcode == MSG_OP_CHARGER_USB_PROPERTY_SET
+     || response->opcode == MSG_OP_CHARGER_USB_PROPERTY_GET
+    ){
+      if(size < 4*5) continue; // Message is too short!
+      if(((UINT32*)(e->request+1))[1] != ((UINT32*)(response+1))[0]) // comparing property_id
         continue;
-      e->done = TRUE;
-      if(e->size > size)
-        e->size = size;
-      if(e->data)
-        gBS->CopyMem(e->data, data, e->size);
-      *it = e->next;
-      break;
     }
+    e->done = TRUE;
+    if(e->response_size > size)
+      e->response_size = size;
+    if(e->response && e->response_size)
+      gBS->CopyMem(e->response, response, e->response_size);
+    *it = e->next;
+    break;
   }
   for(struct descriptor_full* it=ch->descriptor_list; it; it=it->next)
     if(it->public.p.onreceive)
-      it->public.p.onreceive(&it->public, data, size);
+      it->public.p.onreceive(&it->public, response, size);
   glink_error_t error = 0;
   if(EFI_ERROR(mGlinkProtocol->receive_done(handle, data, TRUE, &error) || error))
     DEBUG((EFI_D_ERROR, "glink::receive_done failed: %d\n", error));
@@ -338,10 +350,10 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
 
 static void EFIAPI onsenddone(glink_handle_t* handle, void* priv_open, void* priv_write, void* data, UINTN size){
   struct channel_full* ch = priv_open;
-  DEBUG((EFI_D_WARN, "Glink onsenddone: xport: \"%a\", remote: \"%a\", channel: \"%a\", size: %d\n",
+/*  DEBUG((EFI_D_WARN, "Glink onsenddone: xport: \"%a\", remote: \"%a\", channel: \"%a\", size: %d\n",
     ch->public.link->xport, ch->public.link->remote, ch->public.channel_name,
     size
-  ));
+  ));*/
   UINTN id = (UINTN)priv_write;
   if((id-ch->ack) < (((UINTN)1)<<(sizeof(UINTN)*8-1))){
     ch->ack = id;
@@ -369,7 +381,7 @@ static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d, UINT64 time
   return glink_helper_poll_internal(ch, timeout_us, done) ? EFI_SUCCESS : EFI_TIMEOUT;
 }
 
-static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const void* data, UINTN size){
+static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const struct glink_hdr* data, UINTN size){
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
   UINTN id = ++(ch->seq);
   UINT32 elapsed = 0; // FIXME: Actually measure the time.
@@ -398,40 +410,43 @@ error_timeout:
 }
 
 static EFI_STATUS EFIAPI glink_helper_charger_send_sync(
-  glh_descriptor_t* d, UINT32 opcode, UINT32 property, UINT32 value,
-  void* response, UINTN* response_size
+  glh_descriptor_t* d,
+  const struct glink_hdr* request, UINTN request_size,
+  struct glink_hdr* response, UINTN* response_size
 ){
+  if( request_size < sizeof(*request)
+   || (response_size && *response_size < sizeof(*response))
+  ) return EFI_INVALID_PARAMETER;
+  if( request->opcode == MSG_OP_CHARGER_USB_PROPERTY_GET
+   || request->opcode == MSG_OP_CHARGER_USB_PROPERTY_SET
+  ) if(request_size < 6)
+      return EFI_INVALID_PARAMETER;
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
   EFI_STATUS Status = 0;
   struct battery_charger_response_wait_list object = {
     .next = bcr_wait_list,
-    .msg = {
-      .hdr = {
-        .owner = MSG_OWNER_CHARGER,
-        .type = MSG_TYPE_REQ_RESP,
-        .opcode = opcode,
-      },
-      .property_id = property,
-      .value = value,
-    },
-    .data = response,
-    .size = response_size ? *response_size : 0,
+    .response = response,
+    .response_size = response_size ? *response_size : 0,
+    .request = request,
+    .request_size = request_size,
   };
   bcr_wait_list = &object;
-  Status = glink_helper_send_sync(d, &object.msg, sizeof(object.msg));
+  Status = glink_helper_send_sync(d, object.request, object.request_size);
   if(EFI_ERROR(Status)){
-    DEBUG((EFI_D_ERROR, "charger_write_property_sync: send_sync failed. opcode: %d property: %d value %d\n", opcode, property, value));
+    DEBUG((EFI_D_ERROR, "charger_write_property_sync: send_sync failed: %r. Glink owner: %d type: %d opcode %d\n",
+           Status, request->owner, request->type, request->opcode));
     goto error;
   }
   Status = glink_helper_poll_internal(ch, WAIT_TIMEOUT, &object.done);
   if(EFI_ERROR(Status)){
-    DEBUG((EFI_D_ERROR, "charger_write_property_sync: glink_helper_poll failed. opcode: %d property: %d value %d\n", opcode, property, value));
+    DEBUG((EFI_D_ERROR, "charger_write_property_sync: glink_helper_poll failed: %r. Glink owner: %d type: %d opcode %d\n",
+           Status, request->owner, request->type, request->opcode));
     goto error;
   }
   for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
     if(*it == &object){ *it = object.next; break; }
   if(response_size)
-    *response_size = object.size;
+    *response_size = object.response_size;
   return EFI_SUCCESS;
 error:
   for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
@@ -463,11 +478,61 @@ error:
 }
 
 
+struct glh_charger_usb_property_request_msg {
+  struct glink_hdr hdr;
+  UINT32 battery_id;
+  UINT32 property_id;
+  UINT32 value;
+};
+
+struct glh_charger_usb_property_response_msg {
+  struct glink_hdr hdr;
+  UINT32 property_id;
+  UINT32 value;
+  UINT32 ret_code;
+};
+
+static EFI_STATUS glink_helper_charger_usb_set_property(struct glh_descriptor* d, UINT32 property, UINT32 value){
+  struct glh_charger_usb_property_request_msg request = {
+    .hdr = {
+      .owner = MSG_OWNER_CHARGER,
+      .type = MSG_TYPE_REQ_RESP,
+      .opcode = MSG_OP_CHARGER_USB_PROPERTY_SET,
+    },
+    .property_id = property,
+    .value = value,
+  };
+  // Note: the response has a return code, but we currently don't check it.
+  return glink_helper_charger_send_sync(d, &request.hdr, sizeof(request), 0, 0);
+}
+
+static EFI_STATUS glink_helper_charger_usb_get_property(struct glh_descriptor* d, UINT32 property, UINT32* ret_value){
+  struct glh_charger_usb_property_request_msg request = {
+    .hdr = {
+      .owner = MSG_OWNER_CHARGER,
+      .type = MSG_TYPE_REQ_RESP,
+      .opcode = MSG_OP_CHARGER_USB_PROPERTY_GET,
+    },
+    .property_id = property,
+  };
+  struct glh_charger_usb_property_response_msg response = {0};
+  UINTN response_size = sizeof(response);
+  // Note: the response has a return code, but we currently don't check it.
+  EFI_STATUS Status = glink_helper_charger_send_sync(d, &request.hdr, sizeof(request), &response.hdr, &response_size);
+  if(EFI_ERROR(Status))
+    return Status;
+  *ret_value = response.value;
+  return EFI_SUCCESS;
+}
+
+
 static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol = {
   .open = glink_helper_open,
   .close = glink_helper_close,
   .send_sync = glink_helper_send_sync,
   .poll = glink_helper_poll,
   .charger_send_sync = glink_helper_charger_send_sync,
+  .charger_usb_set_property = glink_helper_charger_usb_set_property,
+  .charger_usb_get_property = glink_helper_charger_usb_get_property,
 };
 
