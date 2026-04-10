@@ -1,0 +1,26 @@
+[Defines]
+  INF_VERSION                    = 0x0010005
+  BASE_NAME                      = GlinkHelperDxe
+  FILE_GUID                      = cd5c1bf0-a589-4e4c-a62a-d5209d2f1cb4
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = glink_helper_init
+
+[Sources]
+  GlinkHelperDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  QcomPkg/QcomPkg.dec
+
+[LibraryClasses]
+  DebugLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+
+[Protocols]
+  gGlinkProtocolGuid
+  gGlinkHelperProtocolGuid
+
+[Depex]
+  TRUE

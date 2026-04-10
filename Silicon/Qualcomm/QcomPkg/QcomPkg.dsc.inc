@@ -54,6 +54,8 @@
   QcomPkg/Drivers/DynamicRamDxe/DynamicRamDxe.inf
   QcomPkg/Drivers/DisplayReEnablerDxe/DisplayReEnablerDxe.inf
   QcomPkg/Drivers/PeripheralInitDxe/PeripheralInitDxe.inf
+  QcomPkg/Drivers/GlinkHelperDxe/GlinkHelperDxe.inf
+  QcomPkg/Drivers/ADSPUSBCDxe/ADSPUSBCDxe.inf
 
   #
   # Custom Apps

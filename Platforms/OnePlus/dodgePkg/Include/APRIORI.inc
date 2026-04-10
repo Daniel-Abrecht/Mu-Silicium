@@ -72,6 +72,7 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/PILDxe/PILDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/SPSSDxe/SPSSDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/GLinkDxe/GLinkDxe.inf
+  INF QcomPkg/Drivers/GlinkHelperDxe/GlinkHelperDxe.inf
 
   INF MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
   INF MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
@@ -94,6 +95,8 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/UsbfnDwc3Dxe/UsbfnDwc3Dxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciPciEmulationDxe/XhciPciEmulationDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciDxe/XhciDxe.inf
+
+  INF QcomPkg/Drivers/ADSPUSBCDxe/ADSPUSBCDxe.inf
 
   INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
