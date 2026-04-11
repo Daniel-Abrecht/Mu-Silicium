@@ -4,9 +4,10 @@
 #define MSG_OWNER_CHARGER 0x800A
 #define MSG_TYPE_REQ_RESP 1
 #define MSG_TYPE_NOTIFY   2
+
+#define MSG_OP_SET_NOTIFY_REQ 0x04
 #define MSG_OP_CHARGER_USB_PROPERTY_GET 0x32
 #define MSG_OP_CHARGER_USB_PROPERTY_SET 0x33
-
 
 typedef struct glh_open_params glh_open_params_t;
 typedef struct glh_descriptor glh_descriptor_t;
@@ -63,6 +64,7 @@ typedef struct GLINK_HELPER_PROTOCOL_ {
   );
   EFI_STATUS (*charger_usb_set_property)(struct glh_descriptor* d, UINT32 property, UINT32 value);
   EFI_STATUS (*charger_usb_get_property)(struct glh_descriptor* d, UINT32 property, UINT32* value);
+  EFI_STATUS (*charger_enable_notifications)(struct glh_descriptor* d);
 } GLINK_HELPER_PROTOCOL;
 
 #endif

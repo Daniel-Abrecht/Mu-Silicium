@@ -59,6 +59,7 @@
   gQcomPkgTokenSpaceGuid.PcdPlatformType|"LA"
   gQcomPkgTokenSpaceGuid.PcdDtbExtensionAddr|0xA703C0E8
   gQcomPkgTokenSpaceGuid.PcdScheduleInterfaceAddr|0xA703CE50
+  gQcomPkgTokenSpaceGuid.PcdGlinkPollWorkaround|TRUE
 
   # Dynamic RAM Start Address
   gSiliciumPkgTokenSpaceGuid.PcdRamPartitionBase|0xFF300000

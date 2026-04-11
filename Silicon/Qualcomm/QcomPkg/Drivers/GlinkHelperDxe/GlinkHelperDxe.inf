@@ -22,5 +22,8 @@
   gGlinkProtocolGuid
   gGlinkHelperProtocolGuid
 
+[FixedPcd]
+  gQcomPkgTokenSpaceGuid.PcdGlinkPollWorkaround
+
 [Depex]
   TRUE

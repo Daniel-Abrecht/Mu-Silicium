@@ -119,3 +119,6 @@
 
   # Storage
   gQcomPkgTokenSpaceGuid.PcdStorageIsUfs3|TRUE|BOOLEAN|0x0000C400
+
+  # Glink: GlinkHelperDxe: If interrupts using IPCDxe is broken, poll with a timer instead
+  gQcomPkgTokenSpaceGuid.PcdGlinkPollWorkaround|FALSE|BOOLEAN|0x0000C500

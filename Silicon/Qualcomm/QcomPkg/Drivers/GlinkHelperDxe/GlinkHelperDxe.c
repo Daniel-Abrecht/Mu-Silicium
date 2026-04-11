@@ -1,3 +1,4 @@
+#include <Library/PcdLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -12,6 +13,8 @@
 
 extern EFI_GUID gGlinkHelperProtocolGuid;
 static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol;
+
+static EFI_EVENT PollEvt; // Workaround for when interrupts / IPCCDxe doesn't work.
 
 extern EFI_GUID gGlinkProtocolGuid;
 GLINK_PROTOCOL* mGlinkProtocol;
@@ -107,11 +110,60 @@ static UINT64 wait_channel(struct channel_full* ch, UINT64 timeout_us){
   return x;
 }
 
+
 static struct link_full* link_list;
 
+////// Workaround for IPPC / Interupt problems
+
+static void firstLinkInit(void){
+  EFI_STATUS Status = 0;
+  if(FixedPcdGetBool(PcdGlinkPollWorkaround)){
+    Status = gBS->SetTimer(PollEvt, TimerPeriodic, 100000);
+    if(EFI_ERROR(Status))
+      DEBUG ((EFI_D_ERROR, "GlinkHelper: SetTimer: TimerPeriodic failed! Status = %r\n", Status));
+    DEBUG ((EFI_D_WARN, "GlinkHelper: Poll timer started\n", Status));
+  }
+}
+
+static void lastLinkCleanup(void){
+  EFI_STATUS Status = 0;
+  if(FixedPcdGetBool(PcdGlinkPollWorkaround)){
+    Status = gBS->SetTimer(PollEvt, TimerCancel, 0);
+    if(EFI_ERROR(Status))
+      DEBUG ((EFI_D_ERROR, "GlinkHelper: SetTimer: TimerCancel failed! Status = %r\n", Status));
+    DEBUG ((EFI_D_WARN, "GlinkHelper: Poll timer stopped\n", Status));
+  }
+}
+
+static BOOLEAN Poll_repoll;
+STATIC VOID EFIAPI Poll(IN EFI_EVENT Event, IN VOID *Context){
+  for(struct link_full* l=link_list; l; l=l->next){
+    for(struct channel_full* ch=l->channel_list; ch; ch=ch->next){
+      for(int i=0; i<32; i++){
+        Poll_repoll = FALSE;
+        glink_error_t error = 0;
+        EFI_STATUS Status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+        if(EFI_ERROR(Status) || error)
+          DEBUG((EFI_D_WARN, "Glink::poll_receive_queue failed: %r %d\n", Status, error));
+        if(!Poll_repoll)
+          break;
+      }
+    }
+  }
+}
+
+//////
+
+// TODO: There could still be a race when calling open/close in events,
+// mainly when the last entry is removed before a new one is added but after the link / channel was found.
+// This would need a proper refcount.
+
 static void link_put(struct link_full* l){
-  if(l->channel_list)
+  EFI_TPL  OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+  if(l->channel_list){
+    gBS->RestoreTPL (OldTpl);
     return;
+  }
   for(struct link_full** pl=&link_list; *pl; pl=&(*pl)->next){
     if(*pl == l){
       *pl = l->next;
@@ -122,9 +174,13 @@ static void link_put(struct link_full* l){
     glink_error_t error = 0;
     if(EFI_ERROR(mGlinkProtocol->link_deregister(l->public.link_handle, &error) || error)){
       DEBUG((EFI_D_ERROR, "glink::link_deregister failed for xport %a remote %a: 0x%X\n", l->public.xport, l->public.remote, error));
+      gBS->RestoreTPL (OldTpl);
       return;
     }
   }
+  if(!link_list)
+    lastLinkCleanup();
+  gBS->RestoreTPL (OldTpl);
   gBS->FreePool(l);
 }
 
@@ -156,8 +212,12 @@ static struct channel_full* create_channel(struct channel_full** pch, struct lin
   }
   if(!wait_channel(ch, WAIT_TIMEOUT))
     goto error_channel;
-  ch->next = *pch;
-  *pch = ch;
+  {
+    EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    ch->next = *pch;
+    *pch = ch;
+    gBS->RestoreTPL (OldTpl);
+  }
   return ch;
 error_channel:
   if(EFI_ERROR(mGlinkProtocol->close(ch->public.handle, &error) || error)){
@@ -177,6 +237,7 @@ static struct channel_full* EFIAPI glink_helper_open_sub(
   const char* remote,
   const char* channel_name
 ){
+  EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
   struct link_full** pl;
   for(pl=&link_list; *pl; pl=&(*pl)->next){
     struct link_full* l = *pl;
@@ -191,10 +252,13 @@ static struct channel_full* EFIAPI glink_helper_open_sub(
       int r = AsciiStrCmp(ch->public.channel_name, channel_name);
       if(r < 0) continue;
       if(r > 0) break;
+      gBS->RestoreTPL (OldTpl);
       return ch;
     }
+    gBS->RestoreTPL (OldTpl);
     return create_channel(pch, l, channel_name);
   }
+  gBS->RestoreTPL (OldTpl);
   struct link_full* l;
   if(EFI_ERROR(gBS->AllocatePool(EfiBootServicesData, sizeof(*l), (VOID**)&l))){
     DEBUG((EFI_D_ERROR, "AllocatePool failed\n"));
@@ -216,8 +280,14 @@ static struct channel_full* EFIAPI glink_helper_open_sub(
   l->public.xport  = xport;
   l->public.remote = remote;
   l->public.link_handle = config.handle;
-  l->next = *pl;
-  *pl = l;
+  {
+    EFI_TPL  OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+    if(!link_list)
+      firstLinkInit();
+    l->next = *pl;
+    *pl = l;
+    gBS->RestoreTPL (OldTpl);
+  }
   return create_channel(&l->channel_list, l, channel_name);
 }
 
@@ -243,22 +313,29 @@ static struct glh_descriptor* EFIAPI glink_helper_open(
     gBS->SetMem(d, sizeof(*d), 0);
   }
   d->public.channel = &ch->public;
-  d->next = ch->descriptor_list;
-  ch->descriptor_list = d;
+  {
+    EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    d->next = ch->descriptor_list;
+    ch->descriptor_list = d;
+    gBS->RestoreTPL (OldTpl);
+  }
   return &d->public;
 }
 
 static void EFIAPI glink_helper_close(struct glh_descriptor* dp){
   struct descriptor_full* d = BASE_CR(dp, struct descriptor_full, public);
   struct channel_full* ch = BASE_CR(d->public.channel, struct channel_full, public);
+  EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
   for(struct descriptor_full** pd=&ch->descriptor_list; *pd; pd=&(*pd)->next){
     if(*pd == d){
       *pd = d->next;
       break;
     }
   }
-  if(ch->descriptor_list)
+  if(ch->descriptor_list){
+    gBS->RestoreTPL (OldTpl);
     return;
+  }
   struct link_full* l = BASE_CR(ch->public.link, struct link_full, public);
   for(struct channel_full** pch=&l->channel_list; *pch; pch=&(*pch)->next){
     if(*pch == ch){
@@ -266,6 +343,7 @@ static void EFIAPI glink_helper_close(struct glh_descriptor* dp){
       break;
     }
   }
+  gBS->RestoreTPL (OldTpl);
   glink_error_t error = 0;
   if(EFI_ERROR(mGlinkProtocol->close(ch->public.handle, &error) || error)){
     DEBUG((EFI_D_ERROR, "glink::close failed for xport %a remote %a channel %a: 0x%X\n", ch->public.link->xport, ch->public.link->remote, ch->public.channel_name, error));
@@ -307,6 +385,8 @@ static struct battery_charger_response_wait_list* bcr_wait_list;
 
 static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv_receive_intent, void* data, UINTN size, UINTN intent_used){
   struct channel_full* ch = priv_open;
+
+  Poll_repoll = TRUE;
   /*
   DEBUG((EFI_D_WARN, "Glink onreceive: \"%a\", remote: \"%a\", channel: \"%a\", size: %d\n",
     ch->public.link->xport, ch->public.link->remote, ch->public.channel_name,
@@ -319,6 +399,7 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
     return;
   }
   struct glink_hdr* response = data;
+  EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
   for(struct battery_charger_response_wait_list** it=&bcr_wait_list; *it; it=&(*it)->next){
     struct battery_charger_response_wait_list* e = *it;
     if( e->request->owner  != response->owner
@@ -332,6 +413,7 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
       if(((UINT32*)(e->request+1))[1] != ((UINT32*)(response+1))[0]) // comparing property_id
         continue;
     }
+    gBS->RestoreTPL (OldTpl);
     e->done = TRUE;
     if(e->response_size > size)
       e->response_size = size;
@@ -340,6 +422,7 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
     *it = e->next;
     break;
   }
+  gBS->RestoreTPL (OldTpl);
   for(struct descriptor_full* it=ch->descriptor_list; it; it=it->next)
     if(it->public.p.onreceive)
       it->public.p.onreceive(&it->public, response, size);
@@ -424,13 +507,17 @@ static EFI_STATUS EFIAPI glink_helper_charger_send_sync(
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
   EFI_STATUS Status = 0;
   struct battery_charger_response_wait_list object = {
-    .next = bcr_wait_list,
     .response = response,
     .response_size = response_size ? *response_size : 0,
     .request = request,
     .request_size = request_size,
   };
-  bcr_wait_list = &object;
+  {
+    EFI_TPL OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    object.next = bcr_wait_list,
+    bcr_wait_list = &object;
+    gBS->RestoreTPL (OldTpl);
+  }
   Status = glink_helper_send_sync(d, object.request, object.request_size);
   if(EFI_ERROR(Status)){
     DEBUG((EFI_D_ERROR, "charger_write_property_sync: send_sync failed: %r. Glink owner: %d type: %d opcode %d\n",
@@ -443,14 +530,22 @@ static EFI_STATUS EFIAPI glink_helper_charger_send_sync(
            Status, request->owner, request->type, request->opcode));
     goto error;
   }
-  for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
-    if(*it == &object){ *it = object.next; break; }
+  {
+    EFI_TPL OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
+      if(*it == &object){ *it = object.next; break; }
+    gBS->RestoreTPL (OldTpl);
+  }
   if(response_size)
     *response_size = object.response_size;
   return EFI_SUCCESS;
 error:
-  for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
-    if(*it == &object){ *it = object.next; break; }
+  {
+    EFI_TPL OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    for(struct battery_charger_response_wait_list** it=&bcr_wait_list; it; it=&(*it)->next)
+      if(*it == &object){ *it = object.next; break; }
+    gBS->RestoreTPL (OldTpl);
+  }
   return Status;
 }
 
@@ -459,6 +554,7 @@ EFI_STATUS EFIAPI glink_helper_init(
   IN EFI_SYSTEM_TABLE *SystemTable)
 {
   EFI_STATUS Status;
+
   Status = gBS->LocateProtocol(&gGlinkProtocolGuid, NULL, (VOID *)&mGlinkProtocol);
   if(EFI_ERROR(Status)){
     DEBUG((EFI_D_ERROR, "Failed to Locate Glink Protocol! Status = %r\n", Status));
@@ -471,6 +567,16 @@ EFI_STATUS EFIAPI glink_helper_init(
     DEBUG ((EFI_D_ERROR, "Failed to Install ULog Protocol! Status = %r\n", Status));
     Status = -1;
     goto error;
+  }
+  if(FixedPcdGetBool(PcdGlinkPollWorkaround)){
+    Status = gBS->CreateEvent(
+      EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
+      Poll, NULL, &PollEvt
+    );
+    if(EFI_ERROR(Status)){
+      DEBUG ((EFI_D_ERROR, "GlinkHelper: Failed to create timer event! Status = %r\n", Status));
+      goto error;
+    }
   }
   return EFI_SUCCESS;
 error:
@@ -525,6 +631,27 @@ static EFI_STATUS glink_helper_charger_usb_get_property(struct glh_descriptor* d
   return EFI_SUCCESS;
 }
 
+// TODO: is there a way to disable notifications again?
+// Also, they seam to be on by default anyway, does this even do anything?
+EFI_STATUS glink_helper_charger_enable_notifications(struct glh_descriptor* d){
+  const struct set_notify_msg {
+    struct glink_hdr hdr;
+    UINT32 battery_id;
+    UINT32 power_state;
+    UINT32 low_capacity;
+    UINT32 high_capacity;
+  } msg = {
+    {
+      .owner = MSG_OWNER_CHARGER,
+      // Note: the android driver uses MSG_TYPE_NOTIFY. The ADSP doesn't seam to care. The response has MSG_TYPE_REQ_RESP set.
+      // We expect the type to match in request and response, and frankly MSG_TYPE_NOTIFY seams strange anyway, so we use
+      // MSG_TYPE_REQ_RESP here.
+      .type = MSG_TYPE_REQ_RESP,
+      .opcode = MSG_OP_SET_NOTIFY_REQ,
+    }
+  };
+  return glink_helper_charger_send_sync(d, &msg.hdr, sizeof(msg), 0, 0);
+}
 
 static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol = {
   .open = glink_helper_open,
@@ -534,5 +661,6 @@ static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol = {
   .charger_send_sync = glink_helper_charger_send_sync,
   .charger_usb_set_property = glink_helper_charger_usb_set_property,
   .charger_usb_get_property = glink_helper_charger_usb_get_property,
+  .charger_enable_notifications = glink_helper_charger_enable_notifications,
 };
 
