@@ -6,6 +6,13 @@
 #include <Protocol/Glink.h>
 #include <Protocol/GlinkHelper.h>
 
+// Notes
+// The PcdGlinkPollWorkaround can be used in case IPCCDxe / interrupts, dont work correctly. It polls the glink channel
+// in a timer.
+// The TPL is raised around every Glink call, this is not pretty, but there were some races in GlinkDxe before that.
+// They certainly happen if the glink poll function is called from a timer. They may also happen when interrupts from
+// IPCCDxe are received, but I currently have no way to test that.
+
 #define RECEIVE_PACKET_QUEUE_COUNT 6
 #define MAX_RECEIVE_PACKET_SIZE    0x1000
 #define RETRY_TIME     10 * 1000
@@ -63,8 +70,10 @@ static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout
   UINT64 elapsed = 0;
   while(TRUE){
     glink_error_t error = 0;
-    EFI_STATUS status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
-    if(!EFI_ERROR(status) && error == 0 && *done)
+    EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    EFI_STATUS Status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+    gBS->RestoreTPL (OldTpl);
+    if(!EFI_ERROR(Status) && error == 0 && *done)
       return timeout_us-elapsed;
     if(elapsed >= timeout_us-RETRY_TIME)
       break;
@@ -83,8 +92,10 @@ static UINT64 wait_link(struct link_full* link, UINT64 timeout_us){
   while(TRUE){
     glink_error_t error = 0;
     enum glink_link_state link_state = 0;
-    EFI_STATUS status = mGlinkProtocol->poll_link_state(link->public.link_handle, &link_state, &error);
-    if(!EFI_ERROR(status) && error == 0 && link_state == GLINK_LINK_STATE_UP && link->public.is_link_up){
+    EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    EFI_STATUS Status = mGlinkProtocol->poll_link_state(link->public.link_handle, &link_state, &error);
+    gBS->RestoreTPL (OldTpl);
+    if(!EFI_ERROR(Status) && error == 0 && link_state == GLINK_LINK_STATE_UP && link->public.is_link_up){
       DEBUG((EFI_D_WARN, "glink::wait_link: link is up\n"));
       return timeout_us-elapsed;
     }
@@ -205,10 +216,15 @@ static struct channel_full* create_channel(struct channel_full** pch, struct lin
   if(!l->public.is_link_up)
     if(!wait_link(l, WAIT_TIMEOUT))
       goto error_open;
-  glink_error_t error = 0;
-  if(EFI_ERROR(mGlinkProtocol->open(&config, &ch->public.handle, &error) || error)){
-    DEBUG((EFI_D_ERROR, "glink::open\n"));
-    goto error_open;
+  {
+    glink_error_t error = 0;
+    EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+    EFI_STATUS Status = mGlinkProtocol->open(&config, &ch->public.handle, &error);
+    gBS->RestoreTPL (OldTpl);
+    if(EFI_ERROR(Status) || error){
+      DEBUG((EFI_D_ERROR, "glink::open\n"));
+      goto error_open;
+    }
   }
   if(!wait_channel(ch, WAIT_TIMEOUT))
     goto error_channel;
@@ -220,10 +236,16 @@ static struct channel_full* create_channel(struct channel_full** pch, struct lin
   }
   return ch;
 error_channel:
-  if(EFI_ERROR(mGlinkProtocol->close(ch->public.handle, &error) || error)){
-    DEBUG((EFI_D_ERROR, "glink::close failed for xport %a remote %a channel %a: 0x%X\n", ch->public.link->xport, ch->public.link->remote, ch->public.channel_name, error));
-    link_put(l);
-    return 0;
+  {
+    glink_error_t error = 0;
+    EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+    EFI_STATUS Status = mGlinkProtocol->close(ch->public.handle, &error);
+    gBS->RestoreTPL (OldTpl);
+    if(EFI_ERROR(Status) || error){
+      DEBUG((EFI_D_ERROR, "glink::close failed for xport %a remote %a channel %a: 0x%X\n", ch->public.link->xport, ch->public.link->remote, ch->public.channel_name, error));
+      link_put(l);
+      return 0;
+    }
   }
 error_open:
   gBS->FreePool(ch);
@@ -271,11 +293,16 @@ static struct channel_full* EFIAPI glink_helper_open_sub(
     .remote = remote,
     .onlink = onlink,
   };
-  glink_error_t error = 0;
-  if(EFI_ERROR(mGlinkProtocol->link_register(&config, l, &error) || error)){
-    DEBUG((EFI_D_ERROR, "glink::link_register failed: 0x%X\n", error));
-    gBS->FreePool(l);
-    return 0;
+  {
+    glink_error_t error = 0;
+    EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+    EFI_STATUS Status = mGlinkProtocol->link_register(&config, l, &error);
+    gBS->RestoreTPL (OldTpl);
+    if(EFI_ERROR(Status) || error){
+      DEBUG((EFI_D_ERROR, "glink::link_register failed: 0x%X\n", error));
+      gBS->FreePool(l);
+      return 0;
+    }
   }
   l->public.xport  = xport;
   l->public.remote = remote;
@@ -343,12 +370,13 @@ static void EFIAPI glink_helper_close(struct glh_descriptor* dp){
       break;
     }
   }
-  gBS->RestoreTPL (OldTpl);
   glink_error_t error = 0;
-  if(EFI_ERROR(mGlinkProtocol->close(ch->public.handle, &error) || error)){
+  if(EFI_ERROR(mGlinkProtocol->close(ch->public.handle, &error)) || error){
     DEBUG((EFI_D_ERROR, "glink::close failed for xport %a remote %a channel %a: 0x%X\n", ch->public.link->xport, ch->public.link->remote, ch->public.channel_name, error));
+    gBS->RestoreTPL (OldTpl);
     return;
   }
+  gBS->RestoreTPL (OldTpl);
   gBS->FreePool(ch);
   link_put(l);
 }
@@ -413,7 +441,6 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
       if(((UINT32*)(e->request+1))[1] != ((UINT32*)(response+1))[0]) // comparing property_id
         continue;
     }
-    gBS->RestoreTPL (OldTpl);
     e->done = TRUE;
     if(e->response_size > size)
       e->response_size = size;
@@ -422,13 +449,13 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
     *it = e->next;
     break;
   }
-  gBS->RestoreTPL (OldTpl);
   for(struct descriptor_full* it=ch->descriptor_list; it; it=it->next)
     if(it->public.p.onreceive)
       it->public.p.onreceive(&it->public, response, size);
   glink_error_t error = 0;
   if(EFI_ERROR(mGlinkProtocol->receive_done(handle, data, TRUE, &error) || error))
     DEBUG((EFI_D_ERROR, "glink::receive_done failed: %d\n", error));
+  gBS->RestoreTPL (OldTpl);
 }
 
 static void EFIAPI onsenddone(glink_handle_t* handle, void* priv_open, void* priv_write, void* data, UINTN size){
@@ -453,9 +480,11 @@ static void EFIAPI onstatechange(glink_handle_t* handle, void* priv_open, enum g
   ch->public.is_channel_open = state == GLINK_CHANNEL_CONNECTED;
   glink_error_t error = 0;
   if(state == GLINK_CHANNEL_CONNECTED){
+    EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
     for(int i=0; i<RECEIVE_PACKET_QUEUE_COUNT; i++)
       if(EFI_ERROR(mGlinkProtocol->queue_receive_intent(handle, NULL, MAX_RECEIVE_PACKET_SIZE, &error) || error))
         DEBUG((EFI_D_ERROR, "glink::queue_receive_intent failed: %d\n", error));
+    gBS->RestoreTPL (OldTpl);
   }
 }
 
@@ -470,18 +499,30 @@ static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const 
   UINT32 elapsed = 0; // FIXME: Actually measure the time.
   while(TRUE){
     glink_error_t error = 0;
-    EFI_STATUS status = mGlinkProtocol->send(d->channel->handle, (void*)id, data, size, 0, &error);
-    if(!EFI_ERROR(status) && error == 0)
-      break;
+    {
+      EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+      EFI_STATUS Status = mGlinkProtocol->send(d->channel->handle, (void*)id, data, size, 0, &error);
+      gBS->RestoreTPL (OldTpl);
+      if(!EFI_ERROR(Status) && error == 0)
+        break;
+    }
     if(elapsed > WAIT_TIMEOUT-RETRY_TIME)
       goto error_timeout;
     gBS->Stall(RETRY_TIME);
     elapsed += RETRY_TIME;
-    mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+    {
+      EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+      mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+      gBS->RestoreTPL (OldTpl);
+    }
   }
   while(TRUE){
-    glink_error_t error = 0;
-    mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+    {
+      glink_error_t error = 0;
+      EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+      mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+      gBS->RestoreTPL (OldTpl);
+    }
     if(ch->ack-id < (((UINTN)1)<<(sizeof(UINTN)*8-1)))
       break; // onsenddone was called for this send call. (so long as ch->ack < id it'll overflow)
     gBS->Stall(RETRY_TIME);
