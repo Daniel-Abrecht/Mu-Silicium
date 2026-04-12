@@ -97,7 +97,8 @@
   INF QcomPkg/Drivers/GlinkHelperDxe/GlinkHelperDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/OcdtDxe/OplusProject.inf
   INF Binaries/dodge/QcomPkg/Drivers/OplusS4ResetDxe/OplusS4ResetDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/PmicGlinkDxe/PmicGlinkDxe.inf
+#  INF Binaries/dodge/QcomPkg/Drivers/PmicGlinkDxe/PmicGlinkDxe.inf
+  INF QcomPkg/Drivers/ADSPUSBCDxe/ADSPUSBCDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/QcomChargerDxe/QcomChargerDxeLA.inf
   INF Binaries/dodge/QcomPkg/Drivers/OplusVibrDxe/OplusVibrDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/UsbPwrCtrlDxe/UsbPwrCtrlDxe.inf
@@ -106,8 +107,6 @@
   INF Binaries/dodge/QcomPkg/Drivers/UsbfnDwc3Dxe/UsbfnDwc3Dxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciPciEmulationDxe/XhciPciEmulationDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciDxe/XhciDxe.inf
-
-  INF QcomPkg/Drivers/ADSPUSBCDxe/ADSPUSBCDxe.inf
 
   INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
