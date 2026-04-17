@@ -1,6 +1,4 @@
-#include <Library/DebugLib.h>
-#include <Library/UefiBootServicesTableLib.h>
-#include <Protocol/GlinkHelper.h>
+#include "ADSPUSBCDxe.h"
 #include "adsp.h"
 
 typedef struct _EFI_PIL_PROTOCOL {
@@ -12,13 +10,12 @@ typedef struct _EFI_PIL_PROTOCOL {
 extern EFI_GUID gEfiPilProtocolGuid;
 static EFI_PIL_PROTOCOL* mPILProtocol;
 
-extern EFI_GUID gGlinkHelperProtocolGuid;
-static GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
-static glh_descriptor_t* glhd;
+GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
+glh_descriptor_t* glhd;
 
 static EFI_EVENT ProcessNotificationsEvt;
 
-static const char* notification_array[] = {
+const char* notification_array[] = {
 #define X(N, V) [V-FIRST_NOTIFICATION] = #N,
   NOTIFICATION_LIST(X) // See adsp.h
 #undef X
@@ -32,7 +29,7 @@ static void connector_power_on(){
   if(power_is_on) return;
   DEBUG((EFI_D_WARN, "turn power on\n"));
   power_is_on = 1;
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_VBUS_REGULATOR_ENABLE, 1);
+  Status = charger_usb_set_property(USB_OTG_VBUS_REGULATOR_ENABLE, 1);
   if(EFI_ERROR(Status)){
     DEBUG ((EFI_D_WARN, "Setting USB_OTG_VBUS_REGULATOR_ENABLE=1 failed: %r\n", Status));
     return;
@@ -43,13 +40,35 @@ static void connector_power_off(){
   EFI_STATUS Status = 0;
   if(!power_is_on) return;
   DEBUG((EFI_D_WARN, "turn power off\n"));
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_VBUS_REGULATOR_ENABLE, 0);
+  Status = charger_usb_set_property(USB_OTG_VBUS_REGULATOR_ENABLE, 0);
   if(EFI_ERROR(Status)){
     DEBUG ((EFI_D_WARN, "Setting USB_OTG_VBUS_REGULATOR_ENABLE=0 failed: %r\n", Status));
     return;
   }
   power_is_on = 0;
 }
+
+
+static void hexdump(const void* vdata, unsigned size){
+  const UINT8* data = vdata;
+  static const char digits[] = "0123456789ABCDEF ";
+  for(unsigned i=0; i<size; i+=16){
+    char line[] = "                                                  |                  ";
+    for(unsigned j=0; j<16 && i+j<size; j++){
+      UINT8 ch = data[i+j];
+      int off = j*3 + (j>=8);
+      line[off+1] = digits[ch/16];
+      line[off+2] = digits[ch%16];
+      if(ch < 0x7F && ch >= 0x20){
+        line[52+j + (j>=8)] = ch;
+      }else{
+        line[52+j + (j>=8)] = '.';
+      }
+    }
+    DEBUG((EFI_D_WARN, " %a\n", line));
+  }
+}
+
 
 struct bitset256 {
   UINT64 value[4];
@@ -82,14 +101,14 @@ STATIC VOID EFIAPI ProcessNotifications(IN EFI_EVENT Event, IN VOID *Context){
    || bitset256_get(&set, CHARGER_N_OTG_ENABLE)
    || bitset256_get(&set, CHARGER_N_OTG_DISABLE)
   ){ // update_typec_state already calls update_cid_detect
-    Status = mGlinkHelperProtocol->charger_usb_get_property(glhd, USB_CID_STATUS, &cid_status);
+    Status = charger_usb_get_property(USB_CID_STATUS, &cid_status);
     DEBUG((EFI_D_WARN, "cid_status: %d\n", cid_status));
   }
   if( bitset256_get(&set, CHARGER_N_TYPEC_STATE_CHANGE)
    || bitset256_get(&set, CHARGER_N_OTG_ENABLE)
    || bitset256_get(&set, CHARGER_N_OTG_DISABLE)
   ){
-    Status = mGlinkHelperProtocol->charger_usb_get_property(glhd, USB_TYPEC_MODE, &typec_mode);
+    Status = charger_usb_get_property(USB_TYPEC_MODE, &typec_mode);
     DEBUG((EFI_D_WARN, "typec_mode: %d\n", typec_mode));
   }
   if(bitset256_get(&set, CHARGER_N_OTG_ENABLE)){ // Note: this isn't about the data role
@@ -113,8 +132,12 @@ STATIC VOID EFIAPI ProcessNotifications(IN EFI_EVENT Event, IN VOID *Context){
 void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
   // WARNING: You can't use glink functions in this callback!
   // If you must use one of them, then you need to defer it using an event.
+  if(data->owner != MSG_OWNER_CHARGER){
+    DEBUG((EFI_D_ERROR, "onreceive notify: 0x%X 0x%X 0x%X\n", data->owner, data->type, data->opcode));
+    hexdump(data+1, size-sizeof(*data));
+  }
 
-  if(data->type == MSG_TYPE_NOTIFY){
+/*  if(data->type == MSG_TYPE_NOTIFY){
     DEBUG((EFI_D_ERROR, "onreceive notify: 0x%X 0x%X 0x%X", data->owner, data->type, data->opcode));
     if(data->owner == MSG_OWNER_CHARGER && data->opcode == 0x07){
       UINT32 notification = *(UINT32*)(data+1);
@@ -126,6 +149,11 @@ void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
     }else{
       DEBUG((EFI_D_ERROR, "\n"));
     }
+  }*/
+
+  if(data->owner == MSG_OWNER_UCSI && data->type == MSG_TYPE_NOTIFY && data->opcode == UCSI_NOTIFICATION){
+    const struct ucsi_notification* notification = (struct ucsi_notification*)(data+1);
+    DEBUG((EFI_D_ERROR, "UCSI notification: %lX\n", notification->cci));
   }
   
   if(data->owner == MSG_OWNER_CHARGER && data->type == MSG_TYPE_NOTIFY && data->opcode == 0x07){
@@ -187,37 +215,66 @@ EFI_STATUS EFIAPI Main(
   }
 
 
-  Status = mGlinkHelperProtocol->charger_enable_notifications(glhd);
-  DEBUG ((EFI_D_WARN, "glink_helper_charger_enable_notifications: %r\n", Status));
+  Status = charger_enable_notifications();
+  DEBUG ((EFI_D_WARN, "charger_enable_notifications: %r\n", Status));
+  // Status = pan_altmode_enable_notifications();
+  // DEBUG ((EFI_D_WARN, "pan_altmode_enable_notifications: %r\n", Status));
+/*  ucsi_write(&(struct ucsi_data){
+    .control = UCSI_SET_NOTIFICATION_ENABLE | (0xFFFF<<16),
+  });*/
 
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_AP_ENABLE, 1);
+  Status = charger_usb_set_property(USB_OTG_AP_ENABLE, 1);
   DEBUG ((EFI_D_WARN, "USB_OTG_AP_ENABLE: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OEM_MISC_CTL, 0x51);
+  Status = charger_usb_set_property(USB_OEM_MISC_CTL, 0x51);
   DEBUG ((EFI_D_WARN, "USB_OEM_MISC_CTL: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_TYPEC_SINKONLY, 0);
+  Status = charger_usb_set_property(USB_TYPEC_SINKONLY, 0);
   DEBUG ((EFI_D_WARN, "USB_TYPEC_SINKONLY: %r\n", Status));
-/*  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_TYPEC_MODE, 0); // 0=DRP, 1=SNK, 2=SRC
-  DEBUG ((EFI_D_WARN, "USB_TYPEC_MODE: %r\n", Status));
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_CCDETECT_HAPPENED, 1);
-  DEBUG ((EFI_D_WARN, "USB_CCDETECT_HAPPENED: %r\n", Status));
-  gBS->Stall(100*1000);
-  Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_SWITCH, 1);
-  DEBUG ((EFI_D_WARN, "USB_OTG_SWITCH: %r\n", Status));*/
-  // Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_BOOST_CURRENT, 1000); // current limit in mA. Default value is 0, not sure what that means.
-  // DEBUG ((EFI_D_WARN, "USB_OTG_BOOST_CURRENT: %r\n", Status));
-  // Status = mGlinkHelperProtocol->charger_usb_set_property(glhd, USB_OTG_VBUS_REGULATOR_ENABLE, 1);
-  // DEBUG ((EFI_D_WARN, "USB_OTG_VBUS_REGULATOR_ENABLE: %r\n", Status));
 
-  // mGlinkHelperProtocol->close(glhd);
+  struct prop {
+    UINT32 opcode;
+    char* name;
+  };
+  struct prop props[] = {
+    {BATT_STATUS, "STATUS"},
+    {BATT_HEALTH, "HEALTH"},
+    {BATT_PRESENT, "PRESENT"},
+    {BATT_CHG_TYPE, "CHG_TYPE"},
+    {BATT_CAPACITY, "CAPACITY"},
+    {BATT_VOLT_OCV, "VOLT_OCV"},
+    {BATT_VOLT_NOW, "VOLT_NOW"},
+    {BATT_VOLT_MAX, "VOLT_MAX"},
+    {BATT_CURR_NOW, "CURR_NOW"},
+    {BATT_TEMP, "TEMP"},
+    {BATT_TECHNOLOGY, "TECHNOLOGY"},
+    {BATT_CHG_COUNTER, "CHG_COUNTER"},
+    {BATT_CYCLE_COUNT, "CYCLE_COUNT"},
+    {BATT_CHG_FULL_DESIGN, "CHG_FULL_DESIGN"},
+    {BATT_CHG_FULL, "CHG_FULL"},
+    {BATT_TTF_AVG, "TTF_AVG"},
+    {BATT_TTE_AVG, "TTE_AVG"},
+    {BATT_POWER_NOW, "POWER_NOW"},
+    {BATT_POWER_AVG, "POWER_AVG"},
+  };
 
-
+  while(1){
+    Status = 0;
+    UINT32 values[sizeof(props)/sizeof(*props)] = {0};
+    for(int i=0; i<sizeof(props)/sizeof(*props); i++)
+      Status |= charger_battery_get_property(0, props[i].opcode, &values[i]);
+    DEBUG((EFI_D_WARN, "\n\nRequested all the properties: %r\n", Status));
+    if(!EFI_ERROR(Status)){
+      for(int i=0; i<sizeof(props)/sizeof(*props); i++)
+        DEBUG((EFI_D_WARN, "%a: %d\n", props[i].name, values[i]));
+    }
+    gBS->Stall(1000000);
+  }
+  
   return EFI_SUCCESS;
 error:
   return Status;
 }
 
 VOID EFIAPI ExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
-  if(glhd)
-    mGlinkHelperProtocol->close(glhd);
+  if(glhd) mGlinkHelperProtocol->close(glhd);
 }
 

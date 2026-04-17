@@ -8,6 +8,9 @@
 
 [Sources]
   ADSPUSBCDxe.c
+  charger.c
+  pan.c
+  ucsi.c
 
 [Packages]
   MdePkg/MdePkg.dec

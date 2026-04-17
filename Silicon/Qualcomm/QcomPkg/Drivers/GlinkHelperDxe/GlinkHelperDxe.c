@@ -387,41 +387,12 @@ static void EFIAPI onlink(struct glink_link_info* info, void* priv){
   l->public.is_link_up = info->state == GLINK_LINK_STATE_UP;
 }
 
-/*
-static void hexdump(const void* vdata, unsigned size){
-  const UINT8* data = vdata;
-  static const char digits[] = "0123456789ABCDEF ";
-  for(unsigned i=0; i<size; i+=16){
-    char line[] = "                                                  |                  ";
-    for(unsigned j=0; j<16 && i+j<size; j++){
-      UINT8 ch = data[i+j];
-      int off = j*3 + (j>=8);
-      line[off+1] = digits[ch/16];
-      line[off+2] = digits[ch%16];
-      if(ch < 0x7F && ch >= 0x20){
-        line[52+j + (j>=8)] = ch;
-      }else{
-        line[52+j + (j>=8)] = '.';
-      }
-    }
-    DEBUG((EFI_D_WARN, " %a\n", line));
-  }
-}
-*/
-
 static struct battery_charger_response_wait_list* bcr_wait_list;
 
 static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv_receive_intent, void* data, UINTN size, UINTN intent_used){
   struct channel_full* ch = priv_open;
 
   Poll_repoll = TRUE;
-  /*
-  DEBUG((EFI_D_WARN, "Glink onreceive: \"%a\", remote: \"%a\", channel: \"%a\", size: %d\n",
-    ch->public.link->xport, ch->public.link->remote, ch->public.channel_name,
-    size
-  ));
-  hexdump(data, size);
-  */
   if(size < sizeof(struct glink_hdr)){
     DEBUG((EFI_D_ERROR, "Glink onreceive: response is too short!"));
     return;
@@ -430,13 +401,16 @@ static void EFIAPI onreceive(glink_handle_t* handle, void* priv_open, void* priv
   EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
   for(struct battery_charger_response_wait_list** it=&bcr_wait_list; *it; it=&(*it)->next){
     struct battery_charger_response_wait_list* e = *it;
+    const UINT32 opcode = response->opcode;
     if( e->request->owner  != response->owner
      || e->request->type   != response->type
-     || e->request->opcode != response->opcode
+     || e->request->opcode != opcode
     ) continue;
-    if( response->opcode == MSG_OP_CHARGER_USB_PROPERTY_SET
-     || response->opcode == MSG_OP_CHARGER_USB_PROPERTY_GET
-    ){
+    if( response->owner == MSG_OWNER_CHARGER && response->type == MSG_TYPE_REQ_RESP && (
+        opcode == MSG_OP_CHARGER_USB_PROPERTY_SET     || opcode == MSG_OP_CHARGER_USB_PROPERTY_GET
+     || opcode == MSG_OP_CHARGER_BATTERY_PROPERTY_SET || opcode == MSG_OP_CHARGER_BATTERY_PROPERTY_GET
+     || opcode == MSG_OP_CHARGER_WLS_PROPERTY_SET     || opcode == MSG_OP_CHARGER_WLS_PROPERTY_GET
+    )){
       if(size < 4*5) continue; // Message is too short!
       if(((UINT32*)(e->request+1))[1] != ((UINT32*)(response+1))[0]) // comparing property_id
         continue;
@@ -533,7 +507,7 @@ error_timeout:
   return EFI_DEVICE_ERROR;
 }
 
-static EFI_STATUS EFIAPI glink_helper_charger_send_sync(
+static EFI_STATUS EFIAPI glink_helper_send_receive_sync(
   glh_descriptor_t* d,
   const struct glink_hdr* request, UINTN request_size,
   struct glink_hdr* response, UINTN* response_size
@@ -541,9 +515,12 @@ static EFI_STATUS EFIAPI glink_helper_charger_send_sync(
   if( request_size < sizeof(*request)
    || (response_size && *response_size < sizeof(*response))
   ) return EFI_INVALID_PARAMETER;
-  if( request->opcode == MSG_OP_CHARGER_USB_PROPERTY_GET
-   || request->opcode == MSG_OP_CHARGER_USB_PROPERTY_SET
-  ) if(request_size < 6)
+  const UINT32 opcode = response->opcode;
+  if( response->owner == MSG_OWNER_CHARGER && response->type == MSG_TYPE_REQ_RESP && (
+      opcode == MSG_OP_CHARGER_USB_PROPERTY_SET     || opcode == MSG_OP_CHARGER_USB_PROPERTY_GET
+   || opcode == MSG_OP_CHARGER_BATTERY_PROPERTY_SET || opcode == MSG_OP_CHARGER_BATTERY_PROPERTY_GET
+   || opcode == MSG_OP_CHARGER_WLS_PROPERTY_SET     || opcode == MSG_OP_CHARGER_WLS_PROPERTY_GET
+  )) if(request_size < 6)
       return EFI_INVALID_PARAMETER;
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
   EFI_STATUS Status = 0;
@@ -625,83 +602,11 @@ error:
 }
 
 
-struct glh_charger_usb_property_request_msg {
-  struct glink_hdr hdr;
-  UINT32 battery_id;
-  UINT32 property_id;
-  UINT32 value;
-};
-
-struct glh_charger_usb_property_response_msg {
-  struct glink_hdr hdr;
-  UINT32 property_id;
-  UINT32 value;
-  UINT32 ret_code;
-};
-
-static EFI_STATUS glink_helper_charger_usb_set_property(struct glh_descriptor* d, UINT32 property, UINT32 value){
-  struct glh_charger_usb_property_request_msg request = {
-    .hdr = {
-      .owner = MSG_OWNER_CHARGER,
-      .type = MSG_TYPE_REQ_RESP,
-      .opcode = MSG_OP_CHARGER_USB_PROPERTY_SET,
-    },
-    .property_id = property,
-    .value = value,
-  };
-  // Note: the response has a return code, but we currently don't check it.
-  return glink_helper_charger_send_sync(d, &request.hdr, sizeof(request), 0, 0);
-}
-
-static EFI_STATUS glink_helper_charger_usb_get_property(struct glh_descriptor* d, UINT32 property, UINT32* ret_value){
-  struct glh_charger_usb_property_request_msg request = {
-    .hdr = {
-      .owner = MSG_OWNER_CHARGER,
-      .type = MSG_TYPE_REQ_RESP,
-      .opcode = MSG_OP_CHARGER_USB_PROPERTY_GET,
-    },
-    .property_id = property,
-  };
-  struct glh_charger_usb_property_response_msg response = {0};
-  UINTN response_size = sizeof(response);
-  // Note: the response has a return code, but we currently don't check it.
-  EFI_STATUS Status = glink_helper_charger_send_sync(d, &request.hdr, sizeof(request), &response.hdr, &response_size);
-  if(EFI_ERROR(Status))
-    return Status;
-  *ret_value = response.value;
-  return EFI_SUCCESS;
-}
-
-// TODO: is there a way to disable notifications again?
-// Also, they seam to be on by default anyway, does this even do anything?
-EFI_STATUS glink_helper_charger_enable_notifications(struct glh_descriptor* d){
-  const struct set_notify_msg {
-    struct glink_hdr hdr;
-    UINT32 battery_id;
-    UINT32 power_state;
-    UINT32 low_capacity;
-    UINT32 high_capacity;
-  } msg = {
-    {
-      .owner = MSG_OWNER_CHARGER,
-      // Note: the android driver uses MSG_TYPE_NOTIFY. The ADSP doesn't seam to care. The response has MSG_TYPE_REQ_RESP set.
-      // We expect the type to match in request and response, and frankly MSG_TYPE_NOTIFY seams strange anyway, so we use
-      // MSG_TYPE_REQ_RESP here.
-      .type = MSG_TYPE_REQ_RESP,
-      .opcode = MSG_OP_SET_NOTIFY_REQ,
-    }
-  };
-  return glink_helper_charger_send_sync(d, &msg.hdr, sizeof(msg), 0, 0);
-}
-
 static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol = {
   .open = glink_helper_open,
   .close = glink_helper_close,
   .send_sync = glink_helper_send_sync,
   .poll = glink_helper_poll,
-  .charger_send_sync = glink_helper_charger_send_sync,
-  .charger_usb_set_property = glink_helper_charger_usb_set_property,
-  .charger_usb_get_property = glink_helper_charger_usb_get_property,
-  .charger_enable_notifications = glink_helper_charger_enable_notifications,
+  .send_receive_sync = glink_helper_send_receive_sync,
 };
 
