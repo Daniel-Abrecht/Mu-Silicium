@@ -5,6 +5,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/GlinkHelper.h>
 
+#include "utils.h"
 
 extern EFI_GUID gGlinkHelperProtocolGuid;
 extern GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
@@ -40,6 +41,9 @@ EFI_STATUS pan_altmode_ack(UINT8 port_index);
 
 // ucsi.c
 #define UCSI_NOTIFICATION 0x13
+
+#define UCSI_ACK_CONNECTOR_CHANGE (1<<16)
+#define UCSI_ACK_COMMAND_COMPLETE (1<<17)
 
 #define CCI_BIT_end_of_message_indicator(CCI)   (1<<0)
 #define CCI_get_connector_change_indicator(CCI) (((CCI)>>1)&0x7F)
@@ -115,11 +119,14 @@ enum {
   UCSI_SN_SINK_PATH_STATUS_CHANGE, //(R)
 };
 
- struct ucsi_notification {
+struct ucsi_notification {
   UINT32 cci; // cci
   UINT32 receiver;
   UINT32 reserved;
 };
+
+void ucsi_init(void);
+void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size);
 
 EFI_STATUS ucsi_write(const struct ucsi_data* ucsi_message);
 EFI_STATUS ucsi_read(struct ucsi_data* ucsi_message);

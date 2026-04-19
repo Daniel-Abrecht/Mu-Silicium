@@ -70,19 +70,6 @@ static void hexdump(const void* vdata, unsigned size){
 }
 
 
-struct bitset256 {
-  UINT64 value[4];
-};
-static void bitset256_clear(struct bitset256*restrict set){
-  *set = (struct bitset256){0};
-}
-static void bitset256_set(struct bitset256*restrict set, UINT8 value){
-  set->value[value/64] |= 1<<(value % 64);
-}
-static BOOLEAN bitset256_get(struct bitset256*restrict set, UINT8 value){
-  return !!(set->value[value/64] & (1<<(value % 64)));
-}
-
 struct bitset256 notification_set;
 
 static UINT32 cid_status = 0;
@@ -130,6 +117,7 @@ STATIC VOID EFIAPI ProcessNotifications(IN EFI_EVENT Event, IN VOID *Context){
 }
 
 void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
+  ucsi_onreceive(glhd, data, size);
   // WARNING: You can't use glink functions in this callback!
   // If you must use one of them, then you need to defer it using an event.
   if(data->owner != MSG_OWNER_CHARGER){
@@ -219,9 +207,7 @@ EFI_STATUS EFIAPI Main(
   DEBUG ((EFI_D_WARN, "charger_enable_notifications: %r\n", Status));
   // Status = pan_altmode_enable_notifications();
   // DEBUG ((EFI_D_WARN, "pan_altmode_enable_notifications: %r\n", Status));
-/*  ucsi_write(&(struct ucsi_data){
-    .control = UCSI_SET_NOTIFICATION_ENABLE | (0xFFFF<<16),
-  });*/
+  ucsi_init();
 
   Status = charger_usb_set_property(USB_OTG_AP_ENABLE, 1);
   DEBUG ((EFI_D_WARN, "USB_OTG_AP_ENABLE: %r\n", Status));
@@ -230,42 +216,7 @@ EFI_STATUS EFIAPI Main(
   Status = charger_usb_set_property(USB_TYPEC_SINKONLY, 0);
   DEBUG ((EFI_D_WARN, "USB_TYPEC_SINKONLY: %r\n", Status));
 
-  struct prop {
-    UINT32 opcode;
-    char* name;
-  };
-  struct prop props[] = {
-    {BATT_STATUS, "STATUS"},
-    {BATT_HEALTH, "HEALTH"},
-    {BATT_PRESENT, "PRESENT"},
-    {BATT_CHG_TYPE, "CHG_TYPE"},
-    {BATT_CAPACITY, "CAPACITY"},
-    {BATT_VOLT_OCV, "VOLT_OCV"},
-    {BATT_VOLT_NOW, "VOLT_NOW"},
-    {BATT_VOLT_MAX, "VOLT_MAX"},
-    {BATT_CURR_NOW, "CURR_NOW"},
-    {BATT_TEMP, "TEMP"},
-    {BATT_TECHNOLOGY, "TECHNOLOGY"},
-    {BATT_CHG_COUNTER, "CHG_COUNTER"},
-    {BATT_CYCLE_COUNT, "CYCLE_COUNT"},
-    {BATT_CHG_FULL_DESIGN, "CHG_FULL_DESIGN"},
-    {BATT_CHG_FULL, "CHG_FULL"},
-    {BATT_TTF_AVG, "TTF_AVG"},
-    {BATT_TTE_AVG, "TTE_AVG"},
-    {BATT_POWER_NOW, "POWER_NOW"},
-    {BATT_POWER_AVG, "POWER_AVG"},
-  };
-
   while(1){
-    Status = 0;
-    UINT32 values[sizeof(props)/sizeof(*props)] = {0};
-    for(int i=0; i<sizeof(props)/sizeof(*props); i++)
-      Status |= charger_battery_get_property(0, props[i].opcode, &values[i]);
-    DEBUG((EFI_D_WARN, "\n\nRequested all the properties: %r\n", Status));
-    if(!EFI_ERROR(Status)){
-      for(int i=0; i<sizeof(props)/sizeof(*props); i++)
-        DEBUG((EFI_D_WARN, "%a: %d\n", props[i].name, values[i]));
-    }
     gBS->Stall(1000000);
   }
   

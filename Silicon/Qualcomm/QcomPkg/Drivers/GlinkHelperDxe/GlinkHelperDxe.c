@@ -15,8 +15,8 @@
 
 #define RECEIVE_PACKET_QUEUE_COUNT 6
 #define MAX_RECEIVE_PACKET_SIZE    0x1000
-#define RETRY_TIME     10 * 1000
-#define WAIT_TIMEOUT 2000 * 1000
+#define RETRY_TIME     10
+#define WAIT_TIMEOUT 2000
 
 extern EFI_GUID gGlinkHelperProtocolGuid;
 static GLINK_HELPER_PROTOCOL mGlinkHelperProtocol;
@@ -59,11 +59,11 @@ struct battery_charger_response_wait_list {
   volatile BOOLEAN done;
 };
 
-static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout_us, volatile BOOLEAN* done){
-  if(!timeout_us)
-    timeout_us = WAIT_TIMEOUT;
-  if(timeout_us <= RETRY_TIME)
-    timeout_us = RETRY_TIME+1;
+static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout_ms, volatile BOOLEAN* done){
+  if(!timeout_ms)
+    timeout_ms = WAIT_TIMEOUT;
+  if(timeout_ms <= RETRY_TIME)
+    timeout_ms = RETRY_TIME+1;
   // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
   // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
   // overflow to worry about being that of the integer type. But there seams to be nothing like that in UEFI!?!
@@ -74,17 +74,17 @@ static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout
     EFI_STATUS Status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
     gBS->RestoreTPL (OldTpl);
     if(!EFI_ERROR(Status) && error == 0 && *done)
-      return timeout_us-elapsed;
-    if(elapsed >= timeout_us-RETRY_TIME)
+      return timeout_ms-elapsed;
+    if(elapsed >= timeout_ms-RETRY_TIME)
       break;
-    gBS->Stall(RETRY_TIME);
+    gBS->Stall(RETRY_TIME*1000);
     elapsed += RETRY_TIME;
   }
   return FALSE;
 }
 
 
-static UINT64 wait_link(struct link_full* link, UINT64 timeout_us){
+static UINT64 wait_link(struct link_full* link, UINT64 timeout_ms){
   // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
   // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
   // overflow to worry about being that of the integer type. But there seams to be nothing like that in UEFI!?!
@@ -97,22 +97,22 @@ static UINT64 wait_link(struct link_full* link, UINT64 timeout_us){
     gBS->RestoreTPL (OldTpl);
     if(!EFI_ERROR(Status) && error == 0 && link_state == GLINK_LINK_STATE_UP && link->public.is_link_up){
       DEBUG((EFI_D_WARN, "glink::wait_link: link is up\n"));
-      return timeout_us-elapsed;
+      return timeout_ms-elapsed;
     }
-    if(elapsed >= timeout_us-RETRY_TIME)
+    if(elapsed >= timeout_ms-RETRY_TIME)
       break;
-    gBS->Stall(RETRY_TIME);
+    gBS->Stall(RETRY_TIME*1000);
     elapsed += RETRY_TIME;
   }
   DEBUG((EFI_D_ERROR, "glink::wait_link: link did not come up!\n"));
   return FALSE;
 }
 
-static UINT64 wait_channel(struct channel_full* ch, UINT64 timeout_us){
+static UINT64 wait_channel(struct channel_full* ch, UINT64 timeout_ms){
   if(!ch->public.link->is_link_up)
-    if(!wait_link(BASE_CR(ch->public.link, struct link_full, public), timeout_us))
+    if(!wait_link(BASE_CR(ch->public.link, struct link_full, public), timeout_ms))
       return FALSE;
-  UINT64 x = glink_helper_poll_internal(ch, timeout_us, &ch->public.is_channel_open);
+  UINT64 x = glink_helper_poll_internal(ch, timeout_ms, &ch->public.is_channel_open);
   if(x){
     DEBUG((EFI_D_WARN, "glink::wait_channel: channel is up\n"));
   }else{
@@ -462,9 +462,9 @@ static void EFIAPI onstatechange(glink_handle_t* handle, void* priv_open, enum g
   }
 }
 
-static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d, UINT64 timeout_us, volatile BOOLEAN* done){
+static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d, UINT64 timeout_ms, volatile BOOLEAN* done){
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
-  return glink_helper_poll_internal(ch, timeout_us, done) ? EFI_SUCCESS : EFI_TIMEOUT;
+  return glink_helper_poll_internal(ch, timeout_ms, done) ? EFI_SUCCESS : EFI_TIMEOUT;
 }
 
 static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const struct glink_hdr* data, UINTN size){
@@ -482,7 +482,7 @@ static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const 
     }
     if(elapsed > WAIT_TIMEOUT-RETRY_TIME)
       goto error_timeout;
-    gBS->Stall(RETRY_TIME);
+    gBS->Stall(RETRY_TIME*1000);
     elapsed += RETRY_TIME;
     {
       EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
@@ -499,7 +499,7 @@ static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const 
     }
     if(ch->ack-id < (((UINTN)1)<<(sizeof(UINTN)*8-1)))
       break; // onsenddone was called for this send call. (so long as ch->ack < id it'll overflow)
-    gBS->Stall(RETRY_TIME);
+    gBS->Stall(RETRY_TIME*1000);
     elapsed += RETRY_TIME;
   }
   return EFI_SUCCESS;
@@ -538,13 +538,13 @@ static EFI_STATUS EFIAPI glink_helper_send_receive_sync(
   }
   Status = glink_helper_send_sync(d, object.request, object.request_size);
   if(EFI_ERROR(Status)){
-    DEBUG((EFI_D_ERROR, "charger_write_property_sync: send_sync failed: %r. Glink owner: %d type: %d opcode %d\n",
+    DEBUG((EFI_D_ERROR, "glink_helper_send_receive_sync: send_sync failed: %r. Glink owner: %d type: %d opcode %d\n",
            Status, request->owner, request->type, request->opcode));
     goto error;
   }
   Status = glink_helper_poll_internal(ch, WAIT_TIMEOUT, &object.done);
   if(EFI_ERROR(Status)){
-    DEBUG((EFI_D_ERROR, "charger_write_property_sync: glink_helper_poll failed: %r. Glink owner: %d type: %d opcode %d\n",
+    DEBUG((EFI_D_ERROR, "glink_helper_send_receive_sync: poll failed: %r. Glink owner: %d type: %d opcode %d\n",
            Status, request->owner, request->type, request->opcode));
     goto error;
   }
