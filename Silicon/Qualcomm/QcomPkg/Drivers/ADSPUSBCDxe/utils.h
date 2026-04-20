@@ -22,6 +22,10 @@ static inline void bitset256_set(bitset256_t*restrict set, UINT8 index){
   set->value[index/64] |= 1<<(index % 64);
 }
 
+static inline void bitset256_unset(bitset256_t*restrict set, UINT8 index){
+  set->value[index/64] &= ~(1<<(index % 64));
+}
+
 static inline BOOLEAN bitset256_get(bitset256_t*restrict set, UINT8 index){
   return !!(set->value[index/64] & (1<<(index % 64)));
 }
@@ -38,6 +42,11 @@ static inline void bitset128_clear(bitset128_t*restrict set){
 static inline void bitset128_set(bitset128_t*restrict set, int index){
   ASSERT(index < 0x80);
   set->value[index/64] |= 1<<(index % 64);
+}
+
+static inline void bitset128_unset(bitset128_t*restrict set, int index){
+  ASSERT(index < 0x80);
+  set->value[index/64] &= ~(1<<(index % 64));
 }
 
 static inline BOOLEAN bitset128_get(bitset128_t*restrict set, int index){
@@ -58,6 +67,11 @@ static inline void bitset64_clear(bitset64_t*restrict set){
 static inline void bitset64_set(bitset64_t*restrict set, int index){
   ASSERT(index < 0x40);
   *set |= 1<<index;
+}
+
+static inline void bitset64_unset(bitset64_t*restrict set, int index){
+  ASSERT(index < 0x40);
+  *set &= ~(1<<index);
 }
 
 static inline BOOLEAN bitset64_get(bitset64_t*restrict set, int index){

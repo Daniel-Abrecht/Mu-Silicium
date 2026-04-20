@@ -139,11 +139,6 @@ void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
     }
   }*/
 
-  if(data->owner == MSG_OWNER_UCSI && data->type == MSG_TYPE_NOTIFY && data->opcode == UCSI_NOTIFICATION){
-    const struct ucsi_notification* notification = (struct ucsi_notification*)(data+1);
-    DEBUG((EFI_D_ERROR, "UCSI notification: %lX\n", notification->cci));
-  }
-  
   if(data->owner == MSG_OWNER_CHARGER && data->type == MSG_TYPE_NOTIFY && data->opcode == 0x07){
     UINT32 notification = *(UINT32*)(data+1);
     if(notification <= 0xFF){
