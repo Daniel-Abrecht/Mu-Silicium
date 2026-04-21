@@ -85,6 +85,13 @@ static void ontransactiondone(const struct ucsi_transaction* t, BOOLEAN error){
     DEBUG((EFI_D_WARN, "UCSI transaction error\n"));
     return;
   }
+  if((t->message.control & 0xFF) == UCSI_GET_CONNECTOR_STATUS){
+    int connector = (t->message.control>>16) & 0x7F;
+    bitset128_unset(&connector_changed_set, connector);
+    int connector_partner_type = t->message.message_in[3] >> 5;
+    DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d %d\n", connector, connector_partner_type));
+    hexdump(&t->message, 0x30);
+  }
   DEBUG((EFI_D_WARN, "UCSI transaction done\n"));
 }
 
@@ -180,20 +187,15 @@ static void ucsi_state_machine_tick(void){
       struct ucsi_transaction* t = transaction_fifo_start;
       error_count = 0;
       state = CMD_IDLE;
-      if((t->message.control & 0xFF) == UCSI_GET_CONNECTOR_STATUS){
-        int connector = (t->message.control>>16) & 0x7F;
-        bitset128_unset(&connector_changed_set, connector);
-        DEBUG((EFI_D_WARN, "\n\nUCSI_GET_CONNECTOR_STATUS: %d\n\n", connector));
-      }
       transaction_in_progress = FALSE;
       transaction_fifo_start = t->next;
       if(!transaction_fifo_start)
         transaction_fifo_end = &transaction_fifo_start;
       t->next = 0;
-      t->done = TRUE;
       gBS->RestoreTPL(OldTpl);
       ontransactiondone(t, FALSE);
       OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+      t->done = TRUE;
     } goto next;
     case CMD_ACK_IN_TRANSIT: break;
     case CMD_ACK_DONE: error_count=0; state=CMD_IDLE; goto next;
@@ -329,7 +331,7 @@ void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN s
           // not copying control, message_out
           gBS->CopyMem(&transaction_fifo_start->message, (void*)(data+1), size > 8 ? 8 : size);
           if(size > 16)
-            gBS->CopyMem(&transaction_fifo_start->message.message_in, (void*)(data+1)+(size-16), size-16 > 16 ? 16 : size-16);
+            gBS->CopyMem(&transaction_fifo_start->message.message_in, (void*)(data+1)+16, size-16 > 16 ? 16 : size-16);
         }
         set_state(CMD_READ_DONE);
       }else{

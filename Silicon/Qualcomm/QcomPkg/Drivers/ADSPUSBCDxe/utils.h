@@ -1,6 +1,8 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <Library/DebugLib.h>
+
 typedef UINT64 bitset64_t;
 typedef struct bitset128 bitset128_t;
 typedef struct bitset256 bitset256_t;
@@ -83,6 +85,9 @@ static inline BOOLEAN bitset64_get(bitset64_t*restrict set, int index){
 static inline BOOLEAN bitset64_is_empty(bitset64_t*restrict set){
   return !*set;
 }
+
+
+void hexdump(const void* vdata, unsigned size);
 
 
 #endif

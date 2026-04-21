@@ -49,27 +49,6 @@ static void connector_power_off(){
 }
 
 
-static void hexdump(const void* vdata, unsigned size){
-  const UINT8* data = vdata;
-  static const char digits[] = "0123456789ABCDEF ";
-  for(unsigned i=0; i<size; i+=16){
-    char line[] = "                                                  |                  ";
-    for(unsigned j=0; j<16 && i+j<size; j++){
-      UINT8 ch = data[i+j];
-      int off = j*3 + (j>=8);
-      line[off+1] = digits[ch/16];
-      line[off+2] = digits[ch%16];
-      if(ch < 0x7F && ch >= 0x20){
-        line[52+j + (j>=8)] = ch;
-      }else{
-        line[52+j + (j>=8)] = '.';
-      }
-    }
-    DEBUG((EFI_D_WARN, " %a\n", line));
-  }
-}
-
-
 struct bitset256 notification_set;
 
 static UINT32 cid_status = 0;
@@ -120,10 +99,10 @@ void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
   ucsi_onreceive(glhd, data, size);
   // WARNING: You can't use glink functions in this callback!
   // If you must use one of them, then you need to defer it using an event.
-  if(data->owner != MSG_OWNER_CHARGER){
+/*  if(data->owner != MSG_OWNER_CHARGER){
     DEBUG((EFI_D_ERROR, "onreceive notify: 0x%X 0x%X 0x%X\n", data->owner, data->type, data->opcode));
     hexdump(data+1, size-sizeof(*data));
-  }
+  }*/
 
 /*  if(data->type == MSG_TYPE_NOTIFY){
     DEBUG((EFI_D_ERROR, "onreceive notify: 0x%X 0x%X 0x%X", data->owner, data->type, data->opcode));

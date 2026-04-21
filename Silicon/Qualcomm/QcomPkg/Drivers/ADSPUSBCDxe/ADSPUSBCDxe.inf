@@ -11,6 +11,7 @@
   charger.c
   pan.c
   ucsi.c
+  utils.c
 
 [Packages]
   MdePkg/MdePkg.dec
