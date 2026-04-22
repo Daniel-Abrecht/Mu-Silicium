@@ -80,16 +80,67 @@ static EFI_STATUS ucsi_send_command_immediately(UINT64 command){
   return mGlinkHelperProtocol->send_sync(glhd, &msg.hdr, sizeof(msg));
 }
 
+struct get_connector_status_in {
+  UINT16 connector_status_change;                  //  0 -  15
+
+  UINT16 power_operation_mode : 3;                 // 16 -  18
+  UINT16 connect_status  : 1;                      // 19
+  UINT16 power_direction : 1;                      // 20
+  UINT16 connector_partner_flags : 8;              // 21 -  28
+  UINT16 connector_partner_type : 3;               // 29 -  31
+
+  UINT32 request_data_object;                      // 32 -  63
+
+  UINT32 battery_charging_capability_status : 2;   // 64 -  65
+  UINT32 provider_capabilities_limited_reason : 4; // 66 -  69
+  UINT32 bcd_pd_version_operation_mode : 16;       // 70 -  85
+  UINT32 orientation : 1;                          // 86
+  UINT32 sink_path_status : 1;                     // 87
+  UINT32 reverse_current_protection_status : 1;    // 88
+  UINT32 reserved : 7;                             // 89 -  95
+
+  UINT32 reserved_2;                               // 96 - 128
+};
+// We fill it in with bit shifts. At worst, it's going to be a bit less efficient.
+//_Static_assert(sizeof(struct get_connector_status_in) == 0x10, "get_connector_status_in data structure had unexpected size");
+
+// Ideally, the compiler should be able to turn this function into about 3 instructions.
+struct get_connector_status_in parse_connector_status_record(const struct ucsi_data* message){
+  const UINT64*restrict m = (UINT64*)message->message_in; // We assume little endian here
+  const struct get_connector_status_in ret = {
+    .connector_status_change = m[0],
+
+    .power_operation_mode = m[0]>>16,
+    .connect_status = m[0]>>19,
+    .power_direction = m[0]>>20,
+    .connector_partner_flags = m[0]>>21,
+    .connector_partner_type = m[0]>>29,
+
+    .request_data_object = m[0]>>32,
+
+    .battery_charging_capability_status = m[1],
+    .provider_capabilities_limited_reason = m[1]>>2,
+    .bcd_pd_version_operation_mode = m[1]>>6,
+    .orientation = m[1]>>22,
+    .sink_path_status = m[1]>>23,
+    .reverse_current_protection_status = m[1]>>24,
+    .reserved = m[1]>>25,
+    .reserved_2 = m[1]>>32,
+  };
+  return ret;
+}
+
 static void ontransactiondone(const struct ucsi_transaction* t, BOOLEAN error){
   if(error){
     DEBUG((EFI_D_WARN, "UCSI transaction error\n"));
     return;
   }
   if((t->message.control & 0xFF) == UCSI_GET_CONNECTOR_STATUS){
+    ack_required |= UCSI_ACK_CONNECTOR_CHANGE;
+    struct get_connector_status_in status = parse_connector_status_record(&t->message);
     int connector = (t->message.control>>16) & 0x7F;
     bitset128_unset(&connector_changed_set, connector);
-    int connector_partner_type = t->message.message_in[3] >> 5;
-    DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d %d\n", connector, connector_partner_type));
+    DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d %d\n", connector, (int)status.connector_partner_type));
     hexdump(&t->message, 0x30);
   }
   DEBUG((EFI_D_WARN, "UCSI transaction done\n"));
@@ -120,17 +171,19 @@ static void ucsi_state_machine_tick(void){
     case CMD_IDLE: {
       if(ack_required){
         state = CMD_ACK_IN_TRANSIT;
+        UINT64 ack_flags = ack_required;
+        ack_required = 0;
         gBS->RestoreTPL(OldTpl);
-        Status = ucsi_send_command_immediately(UCSI_ACK_CC_CI | (ack_required & 0x0000FFFFFFFFFFFF)); // This may call the ucsi_onreceive callback
+        Status = ucsi_send_command_immediately(UCSI_ACK_CC_CI | (ack_flags & 0x0000FFFFFFFFFFFF)); // This may call the ucsi_onreceive callback
         OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
         // If state no longer is IN_TRANSIT, we must've gotten a response already!
         if(EFI_ERROR(Status) && state == CMD_ACK_IN_TRANSIT){
+          ack_required |= ack_flags;
           state = CMD_IDLE;
           errormsg = "ucsi_send_command_immediately UCSI_ACK_CC_CI failed";
           goto error;
         }
         error_count = 0;
-        ack_required = 0;
         goto next;
       }
       if(transaction_fifo_start) start_transaction: {
@@ -351,7 +404,9 @@ void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN s
     DEBUG((EFI_D_ERROR, "UCSI notification: %lX\n", notification->cci));
     int changed_connector = CCI_get_connector_change_indicator(notification->cci);
     if(changed_connector){
-      ack_required |= UCSI_ACK_CONNECTOR_CHANGE;
+      // We do that after we've read a UCSI_GET_CONNECTOR_STATUS command. If we ack it early, we'll loose the status change bits.
+      // Although, we won't actually use those anyway.
+      // ack_required |= UCSI_ACK_CONNECTOR_CHANGE;
       bitset128_set(&connector_changed_set, changed_connector);
     }
     if(notification->cci & CCI_BIT_command_completed){
