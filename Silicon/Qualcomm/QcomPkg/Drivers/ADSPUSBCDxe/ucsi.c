@@ -55,6 +55,7 @@ struct ucsi_transaction {
   BOOLEAN error;
 };
 
+static BOOLEAN transaction_in_progress; // Set if the first transaction transaction_fifo_start points to has been started already
 static struct ucsi_transaction *transaction_fifo_start;
 // transaction_fifo_end always points to transaction_fifo_start if transaction_fifo_start is null.
 // Else, it points top the next field of the last ucsi_transaction entry in the list.
@@ -80,33 +81,13 @@ static EFI_STATUS ucsi_send_command_immediately(UINT64 command){
   return mGlinkHelperProtocol->send_sync(glhd, &msg.hdr, sizeof(msg));
 }
 
-struct get_connector_status_in {
-  UINT16 connector_status_change;                  //  0 -  15
-
-  UINT16 power_operation_mode : 3;                 // 16 -  18
-  UINT16 connect_status  : 1;                      // 19
-  UINT16 power_direction : 1;                      // 20
-  UINT16 connector_partner_flags : 8;              // 21 -  28
-  UINT16 connector_partner_type : 3;               // 29 -  31
-
-  UINT32 request_data_object;                      // 32 -  63
-
-  UINT32 battery_charging_capability_status : 2;   // 64 -  65
-  UINT32 provider_capabilities_limited_reason : 4; // 66 -  69
-  UINT32 bcd_pd_version_operation_mode : 16;       // 70 -  85
-  UINT32 orientation : 1;                          // 86
-  UINT32 sink_path_status : 1;                     // 87
-  UINT32 reverse_current_protection_status : 1;    // 88
-  UINT32 reserved : 7;                             // 89 -  95
-
-  UINT32 reserved_2;                               // 96 - 128
-};
-// We fill it in with bit shifts. At worst, it's going to be a bit less efficient.
-//_Static_assert(sizeof(struct get_connector_status_in) == 0x10, "get_connector_status_in data structure had unexpected size");
-
-// Ideally, the compiler should be able to turn this function into about 3 instructions.
+// Ideally, the compiler should be able to turn this function into 2 or 3 instructions: https://godbolt.org/z/ncrfzqnY7
 struct get_connector_status_in parse_connector_status_record(const struct ucsi_data* message){
-  const UINT64*restrict m = (UINT64*)message->message_in; // We assume little endian here
+  UINT64 m[2] = {((UINT64*)message->message_in)[0], ((UINT64*)message->message_in)[1]};
+  if(!*(char*)(int[]){1}){ // big endian check
+    m[0] = __builtin_bswap64(m[0]);
+    m[1] = __builtin_bswap64(m[1]);
+  }
   const struct get_connector_status_in ret = {
     .connector_status_change = m[0],
 
@@ -130,7 +111,24 @@ struct get_connector_status_in parse_connector_status_record(const struct ucsi_d
   return ret;
 }
 
-static void ontransactiondone(const struct ucsi_transaction* t, BOOLEAN error){
+static void print_connector_status_record(const struct get_connector_status_in*restrict cs){
+  DEBUG((EFI_D_WARN, "UCSI Connector Status:\n"));
+  DEBUG((EFI_D_WARN, "|  Status Change:             0x%04X\n", cs->connector_status_change));
+  DEBUG((EFI_D_WARN, "|  Power Operation Mode:      %d\n", (int)cs->power_operation_mode));
+  DEBUG((EFI_D_WARN, "|  Connect Status:            %d\n", (int)cs->connect_status));
+  DEBUG((EFI_D_WARN, "|  Power Direction:           %d\n", (int)cs->power_direction));
+  DEBUG((EFI_D_WARN, "|  Partner Flags:             0x%02X\n", (int)cs->connector_partner_flags));
+  DEBUG((EFI_D_WARN, "|  Partner Type:              %d\n", (int)cs->connector_partner_type));
+  DEBUG((EFI_D_WARN, "|  Request Data Object:       0x%08X\n", cs->request_data_object));
+  DEBUG((EFI_D_WARN, "|  Battery Charging Status:   %d\n", (int)cs->battery_charging_capability_status));
+  DEBUG((EFI_D_WARN, "|  PD Limited Reason:         %d\n", (int)cs->provider_capabilities_limited_reason));
+  DEBUG((EFI_D_WARN, "|  BCD PD Version:            0x%04X\n", (int)cs->bcd_pd_version_operation_mode));
+  DEBUG((EFI_D_WARN, "|  Orientation:               %d\n", (int)cs->orientation));
+  DEBUG((EFI_D_WARN, "|  Sink Path Status:          %d\n", (int)cs->sink_path_status));
+  DEBUG((EFI_D_WARN, "\\  Reverse Current Prot:      %d\n", (int)cs->reverse_current_protection_status));
+}
+
+static void ontransactiondone(const struct ucsi_transaction* t, EFI_STATUS error){
   if(error){
     DEBUG((EFI_D_WARN, "UCSI transaction error\n"));
     return;
@@ -140,22 +138,74 @@ static void ontransactiondone(const struct ucsi_transaction* t, BOOLEAN error){
     struct get_connector_status_in status = parse_connector_status_record(&t->message);
     int connector = (t->message.control>>16) & 0x7F;
     bitset128_unset(&connector_changed_set, connector);
-    DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d %d\n", connector, (int)status.connector_partner_type));
-    hexdump(&t->message, 0x30);
+    DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d\n", connector));
+    print_connector_status_record(&status);
+    //hexdump(&t->message, 0x30);
   }
   DEBUG((EFI_D_WARN, "UCSI transaction done\n"));
 }
 
-static struct ucsi_transaction temp_transaction = { .done=TRUE };
+// Make sure to run this function in TPL_NOTIFY.
+
+static void transaction_detach(struct ucsi_transaction* t, EFI_STATUS completed_status){
+  EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+  if(t->done){
+    gBS->RestoreTPL(OldTpl);
+    return;
+  }
+  if(t == transaction_fifo_start)
+    transaction_in_progress = FALSE;
+  for(struct ucsi_transaction** it = &transaction_fifo_start; *it; it=&(*it)->next){
+    if(*it != t) continue;
+    if(*transaction_fifo_end == t)
+      transaction_fifo_end = it;
+    *it = t->next;
+    t->next = 0;
+    t->error = FALSE;
+    t->acknowledged = TRUE;
+    t->done = TRUE;
+    gBS->RestoreTPL(OldTpl);
+    ontransactiondone(t, completed_status);
+    return;
+  }
+  ASSERT(!"ucsi_transaction object in invalid state: wasn't marked as done, but not in queue either!");
+}
+
+// Adds a transaction to the end of the transaction queue
+static EFI_STATUS transaction_enqueue(struct ucsi_transaction*restrict t, const struct ucsi_data*restrict ucsi_message){
+  EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+  if(!t->done){
+    gBS->RestoreTPL(OldTpl);
+    return EFI_ABORTED;
+  }
+  gBS->CopyMem(&t->message, (void*)ucsi_message, sizeof(*ucsi_message));
+  t->error = FALSE;
+  t->acknowledged = FALSE;
+  t->done = FALSE;
+  t->next = 0;
+  *transaction_fifo_end = t;
+  transaction_fifo_end = &t->next;
+  work_pending = TRUE;
+  gBS->SignalEvent(state_change_event);
+  gBS->RestoreTPL(OldTpl);
+  return EFI_SUCCESS;
+}
+
+// This transaction object is used internally for things like ACK_CC_CI, GET_CONNECTOR_STATUS, GET_ERROR_STATUS
+// UCSI commands. They take a special role in the UCSI protocol, as they may need to be issued before other commands
+// already in the queue, in the right order. So we make sure we always have a usable temp_transaction object for that.
+static struct ucsi_transaction temp_transaction = {
+  .acknowledged=TRUE,
+  .done=TRUE,
+};
 
 // We need to do a lot of things in the right order just to handle a single UCSI command, 
 // we need to defer sending stuff from the glink message callback because of reentrancy restrictions,
 // and we may have to that while the ucsi_write / ucsi_read function is in a high tpl state where events can't be used.
-// In all cases, we will just call this, and continue on with the next step.
+// In all cases, we will just call this, and continue on with the next step if possible.
 static void ucsi_state_machine_tick(void){
   EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
   static BOOLEAN in_state_machine = FALSE;
-  static BOOLEAN transaction_in_progress = FALSE;
   if(in_state_machine || !work_pending){
     gBS->RestoreTPL(OldTpl);
     return;
@@ -169,6 +219,7 @@ static void ucsi_state_machine_tick(void){
   DEBUG((EFI_D_WARN, "ucsi_state_machine_tick: %a\n", cmd_state_name[state]));
   switch(state){
     case CMD_IDLE: {
+      ASSERT(!transaction_in_progress);
       if(ack_required){
         state = CMD_ACK_IN_TRANSIT;
         UINT64 ack_flags = ack_required;
@@ -223,6 +274,10 @@ static void ucsi_state_machine_tick(void){
     } break;
     case CMD_WRITE_DONE: { // This state is reached after an ACK is received
       ack_required |= UCSI_ACK_COMMAND_COMPLETE;
+      if(!transaction_in_progress){
+        state = CMD_IDLE;
+        goto next;
+      }
       state = CMD_READ_IN_TRANSIT;
       gBS->RestoreTPL(OldTpl);
       Status = mGlinkHelperProtocol->send_sync(glhd, &(struct glink_hdr){MSG_OWNER_UCSI, MSG_TYPE_REQ_RESP, OP_UCSI_READ}, sizeof(struct glink_hdr)); // This may call the ucsi_onreceive callback
@@ -237,23 +292,27 @@ static void ucsi_state_machine_tick(void){
     }; goto next;
     case CMD_READ_IN_TRANSIT: break;
     case CMD_READ_DONE: {
-      struct ucsi_transaction* t = transaction_fifo_start;
       error_count = 0;
       state = CMD_IDLE;
-      transaction_in_progress = FALSE;
-      transaction_fifo_start = t->next;
-      if(!transaction_fifo_start)
-        transaction_fifo_end = &transaction_fifo_start;
-      t->next = 0;
-      gBS->RestoreTPL(OldTpl);
-      ontransactiondone(t, FALSE);
-      OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
-      t->done = TRUE;
+      if(transaction_in_progress){
+        transaction_in_progress = FALSE;
+        struct ucsi_transaction* t = transaction_fifo_start;
+        transaction_fifo_start = t->next;
+        if(!transaction_fifo_start)
+          transaction_fifo_end = &transaction_fifo_start;
+        t->next = 0;
+        t->done = TRUE;
+        gBS->RestoreTPL(OldTpl);
+        ontransactiondone(t, FALSE);
+        OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+      }
     } goto next;
     case CMD_ACK_IN_TRANSIT: break;
     case CMD_ACK_DONE: error_count=0; state=CMD_IDLE; goto next;
     case CMD_ERROR_HAPPENED: {
       error_count = 0;
+      ack_required |= UCSI_ACK_COMMAND_COMPLETE | UCSI_ACK_CONNECTOR_CHANGE;
+      state = CMD_IDLE;
       // TODO: Do something sensible to recover. Maybe a UCSI reset seqence or so.
       if(transaction_in_progress){
         transaction_in_progress = FALSE;
@@ -269,8 +328,6 @@ static void ucsi_state_machine_tick(void){
         ontransactiondone(t, TRUE);
         OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
       }
-      ack_required |= UCSI_ACK_COMMAND_COMPLETE | UCSI_ACK_CONNECTOR_CHANGE;
-      state = CMD_IDLE;
       work_pending = TRUE;
       gBS->SignalEvent(state_change_event);
     } break;
@@ -300,7 +357,10 @@ STATIC VOID EFIAPI timeout_callback(IN EFI_EVENT Event, IN VOID *Context){
 
 
 // Used for ucsi_write / ucsi_read. We can't use temp_transaction for this, it may already be in use.
-static struct ucsi_transaction sync_transaction = { .done=TRUE };
+static ucsi_transaction_sync_t* sync_transaction = (ucsi_transaction_sync_t*)&(struct ucsi_transaction){
+  .acknowledged = TRUE,
+  .done = TRUE,
+};
 
 static EFI_STATUS poll(volatile BOOLEAN*const completion){
   if(*completion) return EFI_SUCCESS;
@@ -322,30 +382,44 @@ static EFI_STATUS poll(volatile BOOLEAN*const completion){
   return EFI_SUCCESS;
 }
 
-EFI_STATUS ucsi_write(const struct ucsi_data* ucsi_message){
-  EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
-  ASSERT(!sync_transaction.next); // This may occur if the function was interrupted, and then called again. Don't do that.
-  gBS->CopyMem(&sync_transaction.message, (void*)ucsi_message, sizeof(*ucsi_message));
-  sync_transaction.error = FALSE;
-  sync_transaction.acknowledged = FALSE;
-  sync_transaction.done = FALSE;
-  sync_transaction.next = *transaction_fifo_end;
-  *transaction_fifo_end = &sync_transaction;
-  transaction_fifo_end = &sync_transaction.next;
-  work_pending = TRUE;
-  gBS->SignalEvent(state_change_event);
-  gBS->RestoreTPL(OldTpl);
-  EFI_STATUS Status = poll(&sync_transaction.acknowledged);
-  if(EFI_ERROR(Status) || sync_transaction.error)
+static EFI_STATUS ucsi_write(struct ucsi_transaction* t, const struct ucsi_data* ucsi_message){
+  switch(ucsi_message->control & 0xFF){
+    case UCSI_PPM_RESET:
+    case UCSI_CANCEL:
+    case UCSI_ACK_CC_CI:
+      return EFI_SUCCESS;
+  }
+  transaction_detach(t, EFI_ABORTED);
+  return transaction_enqueue(t, ucsi_message);
+}
+
+EFI_STATUS ucsi_write_sync(ucsi_transaction_sync_t* st, const struct ucsi_data* ucsi_message){
+  struct ucsi_transaction* t = (struct ucsi_transaction*)st;
+  EFI_STATUS Status;
+  Status = ucsi_write(t, ucsi_message);
+  if(EFI_ERROR(Status))
     return Status;
+  Status = poll(&t->acknowledged);
+  if(EFI_ERROR(Status))
+    return Status;
+  if(t->error)
+    return EFI_DEVICE_ERROR;
   return Status;
 }
 
-EFI_STATUS ucsi_read(struct ucsi_data* ucsi_message){
-  EFI_STATUS Status = poll(&sync_transaction.done);
-  if(EFI_ERROR(Status) || sync_transaction.error)
+EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* st, const struct ucsi_data* ucsi_message){
+  struct ucsi_transaction* t = (struct ucsi_transaction*)st;
+  return ucsi_write((struct ucsi_transaction*)t, ucsi_message);
+}
+
+EFI_STATUS ucsi_read_sync(ucsi_transaction_sync_t* st, struct ucsi_data* ucsi_message){
+  struct ucsi_transaction* t = (struct ucsi_transaction*)st;
+  EFI_STATUS Status = poll(&t->done);
+  if(EFI_ERROR(Status))
     return Status;
-  gBS->CopyMem(ucsi_message, &sync_transaction.message, sizeof(*ucsi_message));
+  if(t->error)
+    return EFI_DEVICE_ERROR;
+  gBS->CopyMem(ucsi_message, &t->message, sizeof(*ucsi_message));
   return EFI_SUCCESS;
 }
 
@@ -368,7 +442,7 @@ void ucsi_init(void){
     return;
   }
   // struct ucsi_data response;
-  Status = ucsi_write(&(struct ucsi_data){ .control = UCSI_SET_NOTIFICATION_ENABLE | (0xFFFF<<16) });
+  Status = ucsi_write_sync(sync_transaction, &(struct ucsi_data){ .control = UCSI_SET_NOTIFICATION_ENABLE | (0xFFFF<<16) });
   DEBUG ((EFI_D_WARN, "\nUCSI_SET_NOTIFICATION_ENABLE: %r\n", Status));
 }
 
@@ -379,7 +453,7 @@ void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN s
   if(data->type == MSG_TYPE_REQ_RESP){
     if(data->opcode == OP_UCSI_READ){
       if(state == CMD_READ_IN_TRANSIT){
-        if(size){
+        if(transaction_in_progress && size){
           // copying only version, reserved, cci, message_in
           // not copying control, message_out
           gBS->CopyMem(&transaction_fifo_start->message, (void*)(data+1), size > 8 ? 8 : size);
