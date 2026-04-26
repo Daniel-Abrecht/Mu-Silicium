@@ -112,10 +112,27 @@ struct get_connector_status_in {
 // We fill it in with bit shifts. At worst, it's going to be a bit less efficient.
 //_Static_assert(sizeof(struct get_connector_status_in) == 0x10, "get_connector_status_in data structure had unexpected size");
 
+//  GET_ERROR_STATUS::error_information
+#define UCSI_ESI_UNRECOGNIZED_COMMAND (1<<0)
+#define UCSI_ESI_NON_EXISTENT_CONNECTOR_NUMBER (1<<1)
+#define UCSI_ESI_INVALID_COMMAND_SPECIFIC_PARAMETERS (1<<2)
+#define UCSI_ESI_INCOMPATIBLE_CONNECTOR_PARTNER (1<<3)
+#define UCSI_ESI_CC_COMMUNICATION_ERROR (1<<4)
+#define UCSI_ESI_COMMAND_UNSUCCESSFUL_DUE_TO_DEAD_BATTERY_CONDITION (1<<5)
+#define UCSI_ESI_CONTRACT_NEGOTIATION_FAILURE (1<<6)
+#define UCSI_ESI_OVERCURRENT (1<<7)
+#define UCSI_ESI_UNDEFINED (1<<8)
+#define UCSI_ESI_PORT_PARTNER_REJECTED_SWAP (1<<9)
+#define UCSI_ESI_HARD_RESET (1<<10)
+#define UCSI_ESI_PPM_POLICY_CONFLICT (1<<11)
+#define UCSI_ESI_SWAP_REJECTED (1<<12)
+#define UCSI_ESI_REVERSE_CURRENT_PROTECTION (1<<13)
+#define UCSI_ESI_SET_SINK_PATH_REJECTED (1<<14)
+
 typedef struct ucsi_transaction_async ucsi_transaction_async_t;
 typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;
 
-void ucsi_init(void);
+EFI_STATUS ucsi_init(void);
 void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size);
 
 EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* t, const struct ucsi_data* ucsi_message);
