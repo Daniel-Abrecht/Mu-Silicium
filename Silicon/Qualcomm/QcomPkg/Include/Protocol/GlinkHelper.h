@@ -64,7 +64,7 @@ typedef struct GLINK_HELPER_PROTOCOL_ {
   glh_descriptor_t* (*EFIAPI open)(const char* xport, const char* remote, const char* channel_name, const struct glh_open_params* initial);
   void (*EFIAPI close)(struct glh_descriptor* dp);
   EFI_STATUS (*EFIAPI send_sync)(struct glh_descriptor* d, const struct glink_hdr* data, UINTN size);
-  EFI_STATUS (*EFIAPI poll)(struct glh_descriptor* d, UINT64 timeout_ms, volatile BOOLEAN* done);
+  EFI_STATUS (*EFIAPI poll)(struct glh_descriptor* d);
   EFI_STATUS (*EFIAPI send_receive_sync)(
     glh_descriptor_t* d,
     const struct glink_hdr* request, UINTN request_size,

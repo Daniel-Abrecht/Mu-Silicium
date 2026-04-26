@@ -18,6 +18,7 @@
   DebugLib
   UefiDriverEntryPoint
   UefiBootServicesTableLib
+  DeadlineLib
 
 [Protocols]
   gGlinkHelperProtocolGuid

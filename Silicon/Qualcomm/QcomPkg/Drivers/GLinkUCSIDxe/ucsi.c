@@ -470,7 +470,23 @@ static void ucsi_state_machine_tick(void){
         OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
       }
       temp_transaction.message.control = 0;
-      // TODO: Do something sensible to recover. Maybe a UCSI reset seqence or so.
+
+      // RESET !!!
+      {
+        DEBUG((EFI_D_ERROR, "ucsi: Attempting to reset PPM!\n"));
+        gBS->RestoreTPL(OldTpl);
+        Status = ucsi_send_command_immediately(UCSI_PPM_RESET); // This may call the ucsi_onreceive callback
+        if(EFI_ERROR(Status)){
+          DEBUG((EFI_D_ERROR, "ucsi: Sending PPM reset command failed!\n"));
+        }else{
+          OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+          init_state = INIT_START;
+          init_done = FALSE;
+          ack_required = 0;
+          state = CMD_IDLE; // TODO: wait a bit before continuing with the init sequence
+        }
+      }
+
       work_pending = TRUE;
       gBS->SignalEvent(state_change_event);
     } break;
@@ -506,7 +522,7 @@ static EFI_STATUS poll(volatile BOOLEAN*const completion){
     if(*completion) return EFI_SUCCESS;
   }
   while(TRUE){
-    // glink poll
+    mGlinkHelperProtocol->poll(glhd);
     if(work_pending)
       ucsi_state_machine_tick();
     if(*completion) break;
@@ -673,6 +689,10 @@ EFI_STATUS EFIAPI Main(
     return EFI_DEVICE_ERROR;
   }
   DEBUG ((EFI_D_WARN, "ucsi_init done!\n"));
+
+  // gBS->Stall(1000000);
+  // DEBUG ((EFI_D_WARN, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"));
+  // set_state(CMD_ERROR_HAPPENED); // This is an easy way to test the error / reset handling
 
   while(1){
     gBS->Stall(1000000);

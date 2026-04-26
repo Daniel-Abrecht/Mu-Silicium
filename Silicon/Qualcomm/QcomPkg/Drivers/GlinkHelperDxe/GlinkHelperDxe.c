@@ -462,9 +462,17 @@ static void EFIAPI onstatechange(glink_handle_t* handle, void* priv_open, enum g
   }
 }
 
-static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d, UINT64 timeout_ms, volatile BOOLEAN* done){
+static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d){
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
-  return glink_helper_poll_internal(ch, timeout_ms, done) ? EFI_SUCCESS : EFI_TIMEOUT;
+  EFI_TPL OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
+  glink_error_t error = 0;
+  EFI_STATUS Status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
+  gBS->RestoreTPL (OldTpl);
+  if(EFI_ERROR(Status))
+    return Status;
+  if(error)
+    return EFI_DEVICE_ERROR;
+  return EFI_SUCCESS;
 }
 
 static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const struct glink_hdr* data, UINTN size){

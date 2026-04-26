@@ -1,0 +1,20 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = DeadlineLib
+  FILE_GUID                      = 54b48a1f-a37f-443d-ae0c-22b810e9e90b
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = DeadlineLib
+  CONSTRUCTOR                    = DeadlineLibInit
+
+[Sources]
+  DeadlineLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  SiliciumPkg/SiliciumPkg.dec
+
+[LibraryClasses]
+  TimerLib
+  DebugLib
+  BaseLib

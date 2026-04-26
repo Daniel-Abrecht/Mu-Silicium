@@ -210,6 +210,7 @@
   ExtractGuidedSectionLib|EmbeddedPkg/Library/PrePiExtractGuidedSectionLib/PrePiExtractGuidedSectionLib.inf
   DmaLib|EmbeddedPkg/Library/CoherentDmaLib/CoherentDmaLib.inf
   IoMmuLib|MdeModulePkg/Library/IoMmuLib/IoMmuLib.inf
+  DeadlineLib|SiliciumPkg/Library/DeadlineLib/DeadlineLib.inf
 
   #
   # Boot Manager Libraries
