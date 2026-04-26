@@ -1,16 +1,13 @@
 [Defines]
   INF_VERSION                    = 0x0010005
-  BASE_NAME                      = ADSPUSBCDxe
-  FILE_GUID                      = 3e8a633a-8fd8-4c24-b592-db3677bb9927
+  BASE_NAME                      = GLinkUCSIDxe
+  FILE_GUID                      = 17898854-110d-44a2-8d4f-b244496e3c71
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
   ENTRY_POINT                    = Main
 
 [Sources]
-  ADSPUSBCDxe.c
-  charger.c
-  pan.c
-  utils.c
+  ucsi.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -23,7 +20,6 @@
   UefiBootServicesTableLib
 
 [Protocols]
-  gEfiPilProtocolGuid
   gGlinkHelperProtocolGuid
 
 [Depex]

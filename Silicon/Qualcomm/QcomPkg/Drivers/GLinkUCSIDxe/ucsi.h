@@ -132,9 +132,6 @@ struct get_connector_status_in {
 typedef struct ucsi_transaction_async ucsi_transaction_async_t;
 typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;
 
-EFI_STATUS ucsi_init(void);
-void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size);
-
 EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* t, const struct ucsi_data* ucsi_message);
 EFI_STATUS ucsi_write_sync(ucsi_transaction_sync_t* t, const struct ucsi_data* ucsi_message);
 EFI_STATUS ucsi_read_sync(ucsi_transaction_sync_t* t, struct ucsi_data* ucsi_message);

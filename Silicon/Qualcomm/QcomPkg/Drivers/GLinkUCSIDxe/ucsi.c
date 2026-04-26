@@ -1,4 +1,6 @@
-#include "ADSPUSBCDxe.h"
+#include "ucsi.h"
+#include <Library/BitmapLib.h>
+#include <Protocol/GlinkHelper.h>
 
 #define WAIT_TIMEOUT 2000
 
@@ -48,7 +50,7 @@ static enum cmd_state state;
 static enum init_state init_state;
 static BOOLEAN init_done;
 
-static bitset128_t connector_changed_set;
+static UINTN connector_changed_set[BITMAP_NUM_WORDS(0x80)];
 static BOOLEAN error_notification_received;
 
 BOOLEAN work_pending;
@@ -58,6 +60,9 @@ static EFI_EVENT timeout_event;
 STATIC VOID EFIAPI state_change_callback(IN EFI_EVENT Event, IN VOID *Context);
 STATIC VOID EFIAPI timeout_callback(IN EFI_EVENT Event, IN VOID *Context);
 
+extern EFI_GUID gGlinkHelperProtocolGuid;
+static GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
+static glh_descriptor_t* glhd;
 
 struct ucsi_transaction {
   struct ucsi_data message;
@@ -181,7 +186,7 @@ static void ontransactiondone(const struct ucsi_transaction* t, EFI_STATUS error
   if(cmd == UCSI_GET_CONNECTOR_STATUS){
     ack_required |= UCSI_ACK_CONNECTOR_CHANGE;
     struct get_connector_status_in status = parse_connector_status_record(&t->message);
-    bitset128_unset(&connector_changed_set, connector);
+    BitmapClear(connector_changed_set, connector);
     DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d\n", connector));
     print_connector_status_record(&status);
     //hexdump(&t->message, 0x30);
@@ -351,8 +356,8 @@ static void ucsi_state_machine_tick(void){
       }
 
       // Handling of connector changes
-      for(int i=0; i<sizeof(connector_changed_set.value) / sizeof(*connector_changed_set.value); i++){
-        UINT64 mask = connector_changed_set.value[i];
+      for(int i=0; i<sizeof(connector_changed_set) / sizeof(*connector_changed_set); i++){
+        UINT64 mask = connector_changed_set[i];
         if(!mask) continue;
         int j;
         for(j=0; !(mask & (1<<j)); j++);
@@ -555,36 +560,7 @@ EFI_STATUS ucsi_read_sync(ucsi_transaction_sync_t* st, struct ucsi_data* ucsi_me
   return EFI_SUCCESS;
 }
 
-EFI_STATUS ucsi_init(void){
-  DEBUG ((EFI_D_WARN, "ucsi_init\n"));
-  EFI_STATUS Status;
-  Status = gBS->CreateEvent(
-    EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
-    state_change_callback, NULL, &state_change_event
-  );
-  if(EFI_ERROR(Status)){
-    DEBUG ((EFI_D_ERROR, "ucsi_init: Failed to create state_change_event! Status = %r\n", Status));
-    return EFI_DEVICE_ERROR;
-  }
-  Status = gBS->CreateEvent(
-    EVT_TIMER, TPL_CALLBACK,
-    timeout_callback, NULL, &timeout_event
-  );
-  if(EFI_ERROR(Status)){
-    DEBUG ((EFI_D_ERROR, "ucsi_init: Failed to create state_change_event! Status = %r\n", Status));
-    return EFI_DEVICE_ERROR;
-  }
-  work_pending = TRUE;
-  poll(&init_done);
-  if(!init_done){
-    DEBUG ((EFI_D_ERROR, "ucsi_init: Failed! Status = %r\n", Status));
-    return EFI_DEVICE_ERROR;
-  }
-  DEBUG ((EFI_D_WARN, "ucsi_init done!\n"));
-  return EFI_SUCCESS;
-}
-
-void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
+static void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
   if(data->owner != MSG_OWNER_UCSI)
     return;
   size -= sizeof(struct glink_hdr);
@@ -619,7 +595,7 @@ void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN s
       // We do that after we've read a UCSI_GET_CONNECTOR_STATUS command. If we ack it early, we'll loose the status change bits.
       // Although, we won't actually use those anyway.
       // ack_required |= UCSI_ACK_CONNECTOR_CHANGE;
-      bitset128_set(&connector_changed_set, changed_connector);
+      BitmapSet(connector_changed_set, changed_connector);
     }
     if(notification->cci & CCI_BIT_command_completed){
       ack_required |= UCSI_ACK_COMMAND_COMPLETE;
@@ -639,3 +615,68 @@ void ucsi_onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN s
   }
 }
 
+
+VOID EFIAPI ExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
+  if(glhd) mGlinkHelperProtocol->close(glhd);
+}
+
+EFI_STATUS EFIAPI Main(
+  IN EFI_HANDLE        ImageHandle,
+  IN EFI_SYSTEM_TABLE *SystemTable
+){
+  DEBUG ((EFI_D_WARN, "ucsi_init\n"));
+  EFI_STATUS Status;
+  Status = gBS->CreateEvent(
+    EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
+    state_change_callback, NULL, &state_change_event
+  );
+  if(EFI_ERROR(Status)){
+    DEBUG ((EFI_D_ERROR, "ucsi_init: Failed to create state_change_event! Status = %r\n", Status));
+    return EFI_DEVICE_ERROR;
+  }
+  Status = gBS->CreateEvent(
+    EVT_TIMER, TPL_CALLBACK,
+    timeout_callback, NULL, &timeout_event
+  );
+  if(EFI_ERROR(Status)){
+    DEBUG ((EFI_D_ERROR, "ucsi_init: Failed to create state_change_event! Status = %r\n", Status));
+    return EFI_DEVICE_ERROR;
+  }
+
+  Status = gBS->LocateProtocol (&gGlinkHelperProtocolGuid, NULL, (VOID *)&mGlinkHelperProtocol);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "Failed to Locate GlinkHelper Protocol! Status = %r\n", Status));
+    return EFI_DEVICE_ERROR;
+  }
+
+  {
+    static EFI_EVENT ExitEvt;
+    Status = gBS->CreateEvent(EVT_SIGNAL_EXIT_BOOT_SERVICES, TPL_NOTIFY, ExitBootServices, NULL, &ExitEvt);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((EFI_D_ERROR, "CreateEvent for EVT_SIGNAL_EXIT_BOOT_SERVICES failed! Status = %r\n", Status));
+      return EFI_DEVICE_ERROR;
+    }
+  }
+  
+  glhd = mGlinkHelperProtocol->open("SMEM", "lpass", "PMIC_RTR_ADSP_APPS", &(const struct glh_open_params){
+    .onreceive = onreceive,
+  });
+  if(!glhd){
+    DEBUG ((EFI_D_WARN, "mGlinkHelperProtocol->open failed\n"));
+    return EFI_DEVICE_ERROR;
+  }
+
+  work_pending = TRUE;
+  poll(&init_done);
+  if(!init_done){
+    DEBUG ((EFI_D_ERROR, "ucsi_init: Failed! Status = %r\n", Status));
+    return EFI_DEVICE_ERROR;
+  }
+  DEBUG ((EFI_D_WARN, "ucsi_init done!\n"));
+
+  while(1){
+    gBS->Stall(1000000);
+  }
+  
+  return EFI_SUCCESS;
+}

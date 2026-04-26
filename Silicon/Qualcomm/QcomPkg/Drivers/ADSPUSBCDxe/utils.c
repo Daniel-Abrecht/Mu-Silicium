@@ -1,23 +1,5 @@
 #include <utils.h>
 
-extern void bitset256_clear(bitset256_t*restrict set);
-extern void bitset256_set(bitset256_t*restrict set, UINT8 index);
-extern void bitset256_unset(bitset256_t*restrict set, UINT8 index);
-extern BOOLEAN bitset256_get(bitset256_t*restrict set, UINT8 index);
-static inline BOOLEAN bitset256_is_empty(bitset256_t*restrict set);
-
-extern void bitset128_clear(bitset128_t*restrict set);
-extern void bitset128_set(bitset128_t*restrict set, int index);
-extern void bitset128_unset(bitset128_t*restrict set, int index);
-extern BOOLEAN bitset128_get(bitset128_t*restrict set, int index);
-static inline BOOLEAN bitset128_is_empty(bitset128_t*restrict set);
-
-extern void bitset64_clear(bitset64_t*restrict set);
-extern void bitset64_set(bitset64_t*restrict set, int index);
-extern void bitset64_unset(bitset64_t*restrict set, int index);
-extern BOOLEAN bitset64_get(bitset64_t*restrict set, int index);
-static inline BOOLEAN bitset64_is_empty(bitset64_t*restrict set);
-
 void hexdump(const void* vdata, unsigned size){
   const UINT8* data = vdata;
   static const char digits[] = "0123456789ABCDEF ";

@@ -38,8 +38,4 @@ EFI_STATUS pan_altmode_send_cmd(enum pan_altmode_cmd cmd, UINT32 arg);
 EFI_STATUS pan_altmode_enable_notifications(void);
 EFI_STATUS pan_altmode_ack(UINT8 port_index);
 
-
-// ucsi.c
-#include "ucsi.h"
-
 #endif

@@ -1,5 +1,6 @@
 #include "ADSPUSBCDxe.h"
 #include "adsp.h"
+#include <Library/BitmapLib.h>
 
 typedef struct _EFI_PIL_PROTOCOL {
   UINT64 Revision;
@@ -48,8 +49,11 @@ static void connector_power_off(){
   power_is_on = 0;
 }
 
+struct notification_set {
+  UINTN value[BITMAP_NUM_WORDS(0x100)];
+};
 
-struct bitset256 notification_set;
+static struct notification_set notification_set;
 
 static UINT32 cid_status = 0;
 static UINT32 typec_mode = 0;
@@ -59,29 +63,29 @@ STATIC VOID EFIAPI ProcessNotifications(IN EFI_EVENT Event, IN VOID *Context){
   EFI_STATUS Status = 0;
   if(!glhd) return;
 
-  struct bitset256 set = notification_set;
-  bitset256_clear(&notification_set);
+  struct notification_set set = notification_set;
+  notification_set = (struct notification_set){0};
   //DEBUG((EFI_D_WARN, "%016X %016X %016X %016X\n", set.value[0], set.value[1], set.value[2], set.value[3]));
   
-  if( bitset256_get(&set, CHARGER_N_CID_DETECT)
-   || bitset256_get(&set, CHARGER_N_OTG_ENABLE)
-   || bitset256_get(&set, CHARGER_N_OTG_DISABLE)
+  if( BitmapTest(set.value, CHARGER_N_CID_DETECT)
+   || BitmapTest(set.value, CHARGER_N_OTG_ENABLE)
+   || BitmapTest(set.value, CHARGER_N_OTG_DISABLE)
   ){ // update_typec_state already calls update_cid_detect
     Status = charger_usb_get_property(USB_CID_STATUS, &cid_status);
     DEBUG((EFI_D_WARN, "cid_status: %d\n", cid_status));
   }
-  if( bitset256_get(&set, CHARGER_N_TYPEC_STATE_CHANGE)
-   || bitset256_get(&set, CHARGER_N_OTG_ENABLE)
-   || bitset256_get(&set, CHARGER_N_OTG_DISABLE)
+  if( BitmapTest(set.value, CHARGER_N_TYPEC_STATE_CHANGE)
+   || BitmapTest(set.value, CHARGER_N_OTG_ENABLE)
+   || BitmapTest(set.value, CHARGER_N_OTG_DISABLE)
   ){
     Status = charger_usb_get_property(USB_TYPEC_MODE, &typec_mode);
     DEBUG((EFI_D_WARN, "typec_mode: %d\n", typec_mode));
   }
-  if(bitset256_get(&set, CHARGER_N_OTG_ENABLE)){ // Note: this isn't about the data role
+  if(BitmapTest(set.value, CHARGER_N_OTG_ENABLE)){ // Note: this isn't about the data role
     power_on_off = TRUE;
     DEBUG((EFI_D_WARN, "OTG_ENABLE\n"));
   }
-  if(bitset256_get(&set, CHARGER_N_OTG_DISABLE)){
+  if(BitmapTest(set.value, CHARGER_N_OTG_DISABLE)){
     power_on_off = FALSE;
     DEBUG((EFI_D_WARN, "OTG_DISABLE\n"));
   }
@@ -96,7 +100,6 @@ STATIC VOID EFIAPI ProcessNotifications(IN EFI_EVENT Event, IN VOID *Context){
 }
 
 void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
-  ucsi_onreceive(glhd, data, size);
   // WARNING: You can't use glink functions in this callback!
   // If you must use one of them, then you need to defer it using an event.
 /*  if(data->owner != MSG_OWNER_CHARGER){
@@ -121,7 +124,7 @@ void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN size){
   if(data->owner == MSG_OWNER_CHARGER && data->type == MSG_TYPE_NOTIFY && data->opcode == 0x07){
     UINT32 notification = *(UINT32*)(data+1);
     if(notification <= 0xFF){
-      bitset256_set(&notification_set, notification);
+      BitmapSet(notification_set.value, notification);
       gBS->SignalEvent(ProcessNotificationsEvt);
     }
   }
@@ -181,7 +184,6 @@ EFI_STATUS EFIAPI Main(
   DEBUG ((EFI_D_WARN, "charger_enable_notifications: %r\n", Status));
   // Status = pan_altmode_enable_notifications();
   // DEBUG ((EFI_D_WARN, "pan_altmode_enable_notifications: %r\n", Status));
-  ucsi_init();
 
   Status = charger_usb_set_property(USB_OTG_AP_ENABLE, 1);
   DEBUG ((EFI_D_WARN, "USB_OTG_AP_ENABLE: %r\n", Status));
@@ -190,10 +192,6 @@ EFI_STATUS EFIAPI Main(
   Status = charger_usb_set_property(USB_TYPEC_SINKONLY, 0);
   DEBUG ((EFI_D_WARN, "USB_TYPEC_SINKONLY: %r\n", Status));
 
-  while(1){
-    gBS->Stall(1000000);
-  }
-  
   return EFI_SUCCESS;
 error:
   return Status;
