@@ -8,6 +8,6 @@ typedef struct {
 } Deadline;
 
 EFI_STATUS Deadline_set(Deadline* t, UINT32 duration_ms);
-BOOLEAN Deadline_is_expired(Deadline* t);
+BOOLEAN Deadline_has_expired(Deadline* t);
 
 #endif

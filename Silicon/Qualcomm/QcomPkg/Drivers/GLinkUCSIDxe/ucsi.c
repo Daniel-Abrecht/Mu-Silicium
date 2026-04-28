@@ -1,8 +1,12 @@
 #include "ucsi.h"
 #include <Library/BitmapLib.h>
+#include <Library/DeadlineLib.h>
 #include <Protocol/GlinkHelper.h>
 
-#define WAIT_TIMEOUT 2000
+
+#define ACK_TIMEOUT_DURATION 500
+#define TRANSACTION_TIMEOUT_DURATION 2000
+#define READ_TIMEOUT_DURATION 500
 
 #define OP_UCSI_READ      0x11
 #define OP_UCSI_WRITE     0x12
@@ -55,7 +59,10 @@ static BOOLEAN error_notification_received;
 
 BOOLEAN work_pending;
 static EFI_EVENT state_change_event;
+
 static EFI_EVENT timeout_event;
+BOOLEAN timeout_active;
+static Deadline timeout_deadline;
 
 STATIC VOID EFIAPI state_change_callback(IN EFI_EVENT Event, IN VOID *Context);
 STATIC VOID EFIAPI timeout_callback(IN EFI_EVENT Event, IN VOID *Context);
@@ -77,6 +84,20 @@ static struct ucsi_transaction *transaction_fifo_start;
 // transaction_fifo_end always points to transaction_fifo_start if transaction_fifo_start is null.
 // Else, it points top the next field of the last ucsi_transaction entry in the list.
 static struct ucsi_transaction **transaction_fifo_end=&transaction_fifo_start;
+
+
+static void timeout_start(UINT32 duration){
+  DEBUG((EFI_D_WARN, "timeout_start\n"));
+  timeout_active = TRUE;
+  Deadline_set(&timeout_deadline, duration);
+  gBS->SetTimer(timeout_event, TimerRelative, (UINT64)duration*10000);
+}
+
+static void timeout_clear(void){
+  DEBUG((EFI_D_WARN, "timeout_clear\n"));
+  timeout_active = FALSE;
+  gBS->SetTimer(timeout_event, TimerCancel, 0);
+}
 
 static void ucsi_state_machine_tick(void);
 static EFI_STATUS poll(volatile BOOLEAN*const completion);
@@ -264,7 +285,7 @@ static void ucsi_state_machine_tick(void){
   const char* errormsg = 0;
   // enum cmd_state old_state = state;
   EFI_STATUS Status;
-  next:;
+next:;
   DEBUG((EFI_D_WARN, "ucsi_state_machine_tick: %a\n", cmd_state_name[state]));
   switch(state){
     case CMD_IDLE: {
@@ -275,12 +296,14 @@ static void ucsi_state_machine_tick(void){
         state = CMD_ACK_IN_TRANSIT;
         UINT64 ack_flags = ack_required;
         ack_required = 0;
+        timeout_start(ACK_TIMEOUT_DURATION);
         gBS->RestoreTPL(OldTpl);
         Status = ucsi_send_command_immediately(UCSI_ACK_CC_CI | (ack_flags & 0x0000FFFFFFFFFFFF)); // This may call the ucsi_onreceive callback
         OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
         // If state no longer is IN_TRANSIT, we must've gotten a response already!
         if(EFI_ERROR(Status) && state == CMD_ACK_IN_TRANSIT){
           ack_required |= ack_flags;
+          timeout_clear();
           state = CMD_IDLE;
           errormsg = "ucsi_send_command_immediately UCSI_ACK_CC_CI failed";
           goto error;
@@ -342,11 +365,13 @@ static void ucsi_state_machine_tick(void){
       if(transaction_fifo_start) start_transaction: {
         DEBUG((EFI_D_WARN, "start_transaction\n"));
         state = CMD_WRITE_IN_TRANSIT;
+        timeout_start(TRANSACTION_TIMEOUT_DURATION);
         gBS->RestoreTPL(OldTpl);
         Status = ucsi_write_immediately(&transaction_fifo_start->message); // This may call the ucsi_onreceive callback
         OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
         if(EFI_ERROR(Status) && state == CMD_WRITE_IN_TRANSIT){
           state = CMD_IDLE;
+          timeout_clear();
           errormsg = "ucsi_send_immediately UCSI_WRITE failed";
           goto error;
         }
@@ -380,6 +405,7 @@ static void ucsi_state_machine_tick(void){
       ack_required |= UCSI_ACK_COMMAND_COMPLETE;
     } break;
     case CMD_WRITE_DONE: { // This state is reached after an ACK is received
+      timeout_clear();
       ack_required |= UCSI_ACK_COMMAND_COMPLETE;
       transaction_fifo_start->acknowledged = TRUE;
       if(!transaction_in_progress){
@@ -393,11 +419,13 @@ static void ucsi_state_machine_tick(void){
         goto next;
       }
       state = CMD_READ_IN_TRANSIT;
+      timeout_start(READ_TIMEOUT_DURATION);
       gBS->RestoreTPL(OldTpl);
       Status = mGlinkHelperProtocol->send_sync(glhd, &(struct glink_hdr){MSG_OWNER_UCSI, MSG_TYPE_REQ_RESP, OP_UCSI_READ}, sizeof(struct glink_hdr)); // This may call the ucsi_onreceive callback
       OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
       if(EFI_ERROR(Status) && state == CMD_READ_IN_TRANSIT){
         state = CMD_WRITE_DONE;
+        timeout_clear();
         errormsg = "ucsi_send_immediately UCSI_WRITE failed";
         goto error;
       }
@@ -406,6 +434,7 @@ static void ucsi_state_machine_tick(void){
     }; goto next;
     case CMD_READ_IN_TRANSIT: break;
     case CMD_READ_DONE: {
+      timeout_clear();
       error_count = 0;
       state = CMD_IDLE;
       if(transaction_in_progress){
@@ -445,8 +474,13 @@ static void ucsi_state_machine_tick(void){
       temp_transaction.message.control = 0;
     } goto next;
     case CMD_ACK_IN_TRANSIT: break;
-    case CMD_ACK_DONE: error_count=0; state=CMD_IDLE; goto next;
+    case CMD_ACK_DONE:
+      timeout_clear();
+      error_count=0;
+      state=CMD_IDLE;
+      goto next;
     case CMD_ERROR_HAPPENED: {
+      timeout_clear();
       error_count = 0;
       state = CMD_IDLE;
       if(error_notification_received && temp_transaction.message.control != UCSI_GET_ERROR_STATUS){
@@ -509,8 +543,16 @@ STATIC VOID EFIAPI state_change_callback(IN EFI_EVENT Event, IN VOID *Context){
 }
 
 STATIC VOID EFIAPI timeout_callback(IN EFI_EVENT Event, IN VOID *Context){
+  EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+  DEBUG((EFI_D_WARN, "timeout_callback\n"));
+  if(!timeout_active){
+    gBS->RestoreTPL(OldTpl);
+    return;
+  }
+  timeout_active = FALSE;
   set_state(CMD_ERROR_HAPPENED);
   work_pending = TRUE;
+  gBS->RestoreTPL(OldTpl);
   ucsi_state_machine_tick();
 }
 
@@ -522,11 +564,13 @@ static EFI_STATUS poll(volatile BOOLEAN*const completion){
     if(*completion) return EFI_SUCCESS;
   }
   while(TRUE){
+    if(!timeout_active)
+      return *completion ? EFI_SUCCESS : EFI_TIMEOUT;
     mGlinkHelperProtocol->poll(glhd);
     if(work_pending)
       ucsi_state_machine_tick();
     if(*completion) break;
-    if(FALSE){
+    if(Deadline_has_expired(&timeout_deadline)){
       timeout_callback(0,0);
       return EFI_TIMEOUT;
     }
@@ -651,7 +695,7 @@ EFI_STATUS EFIAPI Main(
     return EFI_DEVICE_ERROR;
   }
   Status = gBS->CreateEvent(
-    EVT_TIMER, TPL_CALLBACK,
+    EVT_TIMER | EVT_NOTIFY_SIGNAL, TPL_CALLBACK,
     timeout_callback, NULL, &timeout_event
   );
   if(EFI_ERROR(Status)){

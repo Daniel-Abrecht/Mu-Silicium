@@ -42,7 +42,7 @@ EFI_STATUS Deadline_set(Deadline* t, UINT32 duration_ms){
   return EFI_SUCCESS;
 }
 
-BOOLEAN Deadline_is_expired(Deadline* t){
+BOOLEAN Deadline_has_expired(Deadline* t){
   UINT64 now = GetPerformanceCounter() - timer_start;
   ASSERT(now <= timer_count);
   if(timer_is_countdown)
