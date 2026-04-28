@@ -1,6 +1,7 @@
 #include <Library/PcdLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
+#include <Library/DeadlineLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/Glink.h>
@@ -59,36 +60,23 @@ struct battery_charger_response_wait_list {
   volatile BOOLEAN done;
 };
 
-static UINT64 glink_helper_poll_internal(struct channel_full* ch, UINT64 timeout_ms, volatile BOOLEAN* done){
-  if(!timeout_ms)
-    timeout_ms = WAIT_TIMEOUT;
-  if(timeout_ms <= RETRY_TIME)
-    timeout_ms = RETRY_TIME+1;
-  // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
-  // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
-  // overflow to worry about being that of the integer type. But there seams to be nothing like that in UEFI!?!
-  UINT64 elapsed = 0;
+static BOOLEAN glink_helper_poll_internal(struct channel_full* ch, Deadline* deadline, volatile BOOLEAN* done){
   while(TRUE){
     glink_error_t error = 0;
     EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
     EFI_STATUS Status = mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
     gBS->RestoreTPL (OldTpl);
     if(!EFI_ERROR(Status) && error == 0 && *done)
-      return timeout_ms-elapsed;
-    if(elapsed >= timeout_ms-RETRY_TIME)
+      return TRUE;
+    if(Deadline_has_expired(deadline))
       break;
     gBS->Stall(RETRY_TIME*1000);
-    elapsed += RETRY_TIME;
   }
   return FALSE;
 }
 
 
-static UINT64 wait_link(struct link_full* link, UINT64 timeout_ms){
-  // FIXME: Actually measure the time. There are functions for getting a time or counter, but they seam a pain to deal with.
-  // Arduino has the millis() function, it's easy to reason about, retuning a single integer with known unit, and the only
-  // overflow to worry about being that of the integer type. But there seams to be nothing like that in UEFI!?!
-  UINT64 elapsed = 0;
+static BOOLEAN wait_link(struct link_full* link, Deadline* deadline){
   while(TRUE){
     glink_error_t error = 0;
     enum glink_link_state link_state = 0;
@@ -97,28 +85,26 @@ static UINT64 wait_link(struct link_full* link, UINT64 timeout_ms){
     gBS->RestoreTPL (OldTpl);
     if(!EFI_ERROR(Status) && error == 0 && link_state == GLINK_LINK_STATE_UP && link->public.is_link_up){
       DEBUG((EFI_D_WARN, "glink::wait_link: link is up\n"));
-      return timeout_ms-elapsed;
+      return TRUE;
     }
-    if(elapsed >= timeout_ms-RETRY_TIME)
+    if(Deadline_has_expired(deadline))
       break;
     gBS->Stall(RETRY_TIME*1000);
-    elapsed += RETRY_TIME;
   }
   DEBUG((EFI_D_ERROR, "glink::wait_link: link did not come up!\n"));
   return FALSE;
 }
 
-static UINT64 wait_channel(struct channel_full* ch, UINT64 timeout_ms){
+static BOOLEAN wait_channel(struct channel_full* ch, Deadline* deadline){
   if(!ch->public.link->is_link_up)
-    if(!wait_link(BASE_CR(ch->public.link, struct link_full, public), timeout_ms))
+    if(!wait_link(BASE_CR(ch->public.link, struct link_full, public), deadline))
       return FALSE;
-  UINT64 x = glink_helper_poll_internal(ch, timeout_ms, &ch->public.is_channel_open);
-  if(x){
-    DEBUG((EFI_D_WARN, "glink::wait_channel: channel is up\n"));
-  }else{
+  if(!glink_helper_poll_internal(ch, deadline, &ch->public.is_channel_open)){
     DEBUG((EFI_D_ERROR, "glink::wait_channel: channel did not come up!\n"));
+    return FALSE;
   }
-  return x;
+  DEBUG((EFI_D_WARN, "glink::wait_channel: channel is up\n"));
+  return TRUE;
 }
 
 
@@ -129,7 +115,7 @@ static struct link_full* link_list;
 static void firstLinkInit(void){
   EFI_STATUS Status = 0;
   if(FixedPcdGetBool(PcdGlinkPollWorkaround)){
-    Status = gBS->SetTimer(PollEvt, TimerPeriodic, 100000);
+    Status = gBS->SetTimer(PollEvt, TimerPeriodic, 100 * 10000);
     if(EFI_ERROR(Status))
       DEBUG ((EFI_D_ERROR, "GlinkHelper: SetTimer: TimerPeriodic failed! Status = %r\n", Status));
     DEBUG ((EFI_D_WARN, "GlinkHelper: Poll timer started\n", Status));
@@ -196,6 +182,7 @@ static void link_put(struct link_full* l){
 }
 
 static struct channel_full* create_channel(struct channel_full** pch, struct link_full* l, const char* channel_name){
+  Deadline deadline;
   struct channel_full* ch;
   if(EFI_ERROR(gBS->AllocatePool(EfiBootServicesData, sizeof(*ch), (VOID**)&ch))){
     DEBUG((EFI_D_ERROR, "AllocatePool failed\n"));
@@ -213,8 +200,9 @@ static struct channel_full* create_channel(struct channel_full** pch, struct lin
     .onstatechange = onstatechange,
     .priv = ch,
   };
+  Deadline_set(&deadline, WAIT_TIMEOUT);
   if(!l->public.is_link_up)
-    if(!wait_link(l, WAIT_TIMEOUT))
+    if(!wait_link(l, &deadline))
       goto error_open;
   {
     glink_error_t error = 0;
@@ -226,7 +214,8 @@ static struct channel_full* create_channel(struct channel_full** pch, struct lin
       goto error_open;
     }
   }
-  if(!wait_channel(ch, WAIT_TIMEOUT))
+  Deadline_set(&deadline, WAIT_TIMEOUT);
+  if(!wait_channel(ch, &deadline))
     goto error_channel;
   {
     EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
@@ -476,9 +465,10 @@ static EFI_STATUS EFIAPI glink_helper_poll(struct glh_descriptor* d){
 }
 
 static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const struct glink_hdr* data, UINTN size){
+  Deadline deadline;
+  Deadline_set(&deadline, WAIT_TIMEOUT);
   struct channel_full* ch = BASE_CR(d->channel, struct channel_full, public);
   UINTN id = ++(ch->seq);
-  UINT32 elapsed = 0; // FIXME: Actually measure the time.
   while(TRUE){
     glink_error_t error = 0;
     {
@@ -488,10 +478,9 @@ static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const 
       if(!EFI_ERROR(Status) && error == 0)
         break;
     }
-    if(elapsed > WAIT_TIMEOUT-RETRY_TIME)
+    if(Deadline_has_expired(&deadline))
       goto error_timeout;
     gBS->Stall(RETRY_TIME*1000);
-    elapsed += RETRY_TIME;
     {
       EFI_TPL  OldTpl = gBS->RaiseTPL (TPL_NOTIFY);
       mGlinkProtocol->poll_receive_queue(ch->public.handle, &error);
@@ -507,8 +496,9 @@ static EFI_STATUS EFIAPI glink_helper_send_sync(struct glh_descriptor* d, const 
     }
     if(ch->ack-id < (((UINTN)1)<<(sizeof(UINTN)*8-1)))
       break; // onsenddone was called for this send call. (so long as ch->ack < id it'll overflow)
+    if(Deadline_has_expired(&deadline))
+      goto error_timeout;
     gBS->Stall(RETRY_TIME*1000);
-    elapsed += RETRY_TIME;
   }
   return EFI_SUCCESS;
 error_timeout:
@@ -520,6 +510,8 @@ static EFI_STATUS EFIAPI glink_helper_send_receive_sync(
   const struct glink_hdr* request, UINTN request_size,
   struct glink_hdr* response, UINTN* response_size
 ){
+  Deadline deadline;
+  Deadline_set(&deadline, WAIT_TIMEOUT);
   if( request_size < sizeof(*request)
    || (response_size && *response_size < sizeof(*response))
   ) return EFI_INVALID_PARAMETER;
@@ -550,7 +542,7 @@ static EFI_STATUS EFIAPI glink_helper_send_receive_sync(
            Status, request->owner, request->type, request->opcode));
     goto error;
   }
-  Status = glink_helper_poll_internal(ch, WAIT_TIMEOUT, &object.done);
+  Status = glink_helper_poll_internal(ch, &deadline, &object.done);
   if(EFI_ERROR(Status)){
     DEBUG((EFI_D_ERROR, "glink_helper_send_receive_sync: poll failed: %r. Glink owner: %d type: %d opcode %d\n",
            Status, request->owner, request->type, request->opcode));

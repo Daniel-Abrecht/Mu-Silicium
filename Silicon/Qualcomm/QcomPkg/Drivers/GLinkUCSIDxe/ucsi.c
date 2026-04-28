@@ -125,10 +125,6 @@ static EFI_STATUS ucsi_send_command_immediately(UINT64 command){
 // Ideally, the compiler should be able to turn this function into 2 or 3 instructions: https://godbolt.org/z/ncrfzqnY7
 struct get_connector_status_in parse_connector_status_record(const struct ucsi_data* message){
   UINT64 m[2] = {((UINT64*)message->message_in)[0], ((UINT64*)message->message_in)[1]};
-  if(!*(char*)(int[]){1}){ // big endian check
-    m[0] = __builtin_bswap64(m[0]);
-    m[1] = __builtin_bswap64(m[1]);
-  }
   const struct get_connector_status_in ret = {
     .connector_status_change = m[0],
 
