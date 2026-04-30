@@ -210,7 +210,7 @@ static struct channel_full* create_channel(struct channel_full** pch, struct lin
     EFI_STATUS Status = mGlinkProtocol->open(&config, &ch->public.handle, &error);
     gBS->RestoreTPL (OldTpl);
     if(EFI_ERROR(Status) || error){
-      DEBUG((EFI_D_ERROR, "glink::open\n"));
+      DEBUG((EFI_D_ERROR, "glink::open: %r\n", Status));
       goto error_open;
     }
   }
