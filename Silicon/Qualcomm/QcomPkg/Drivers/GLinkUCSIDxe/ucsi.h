@@ -29,10 +29,22 @@ EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* t, const struct ucsi_data*
 EFI_STATUS ucsi_write_sync(ucsi_transaction_sync_t* t, const struct ucsi_data* ucsi_message);
 EFI_STATUS ucsi_read_sync(ucsi_transaction_sync_t* t, struct ucsi_data* ucsi_message);
 
+ucsi_transaction_sync_t*  ucsi_create_sync_transaction(struct glink_ucsi* ucsi);
+ucsi_transaction_async_t* ucsi_create_async_transaction(
+  struct glink_ucsi* ucsi,
+  void* userdata,
+  void(*ontransactiondone)(void* userdata, const struct ucsi_data* data, EFI_STATUS error, UINT16 ucsi_error_status)
+);
+void ucsi_destroy_async_transaction(ucsi_transaction_async_t*);
+void ucsi_destroy_sync_transaction(ucsi_transaction_sync_t*);
+
+
 struct ucsi_transaction {
   struct ucsi_data message;
   struct ucsi_transaction* next;
   struct glink_ucsi* glink_ucsi;
+  void* userdata;
+  void(*ontransactiondone)(void* userdata, const struct ucsi_data* data, EFI_STATUS error, UINT16 ucsi_error_status);
   BOOLEAN acknowledged;
   BOOLEAN done;
   BOOLEAN error;

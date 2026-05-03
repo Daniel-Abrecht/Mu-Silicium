@@ -114,7 +114,7 @@ static EFI_STATUS EFIAPI UCSI_BindingStartSupported(
           NULL
         );
         if(EFI_ERROR(Status))
-          return Status;
+          goto error;
       }
     }
   }
@@ -124,44 +124,60 @@ static EFI_STATUS EFIAPI UCSI_BindingStartSupported(
 // after getting the channel information from the device path, but that should be done by the
 // GLinkHelper instead.
 
-  EFI_DEVICE_PATH_PROTOCOL* nodes[3];
-  GetLastNNodes(device_path, 3, nodes);
-  if( !nodes[0] || !nodes[1] || !nodes[2]
-   || nodes[0]->Type != HARDWARE_DEVICE_PATH || nodes[0]->SubType != HW_VENDOR_DP
-   || nodes[1]->Type != HARDWARE_DEVICE_PATH || nodes[1]->SubType != HW_VENDOR_DP
-   || nodes[2]->Type != HARDWARE_DEVICE_PATH || nodes[2]->SubType != HW_VENDOR_DP
-  ) return EFI_UNSUPPORTED;
-  VENDOR_DEVICE_PATH* dp_ucsi = (VENDOR_DEVICE_PATH*)nodes[0];
-  VENDOR_DEVICE_PATH* dp_glink_channel = (VENDOR_DEVICE_PATH*)nodes[1];
-  VENDOR_DEVICE_PATH* dp_glink_remote = (VENDOR_DEVICE_PATH*)nodes[2];
-  if( !CompareGuid(&dp_ucsi->Guid, &gVDP_GlinkUcsiProtocolGuid)
-   || !CompareGuid(&dp_glink_channel->Guid, &gVDP_GlinkChannelProtocolGuid)
-   || !CompareGuid(&dp_glink_remote->Guid, &gVDP_GlinkRemoteProtocolGuid)
-  ) return EFI_UNSUPPORTED;
-  UINT16 glink_owner_id;
-  gBS->CopyMem(&glink_owner_id, dp_ucsi+1, 2);
-  const UINTN dp_glink_channel_length = (dp_glink_channel->Header.Length[0] | (dp_glink_channel->Header.Length[1]<<8)) - sizeof(VENDOR_DEVICE_PATH);
-  const char*const dp_glink_channel_data = (const char*)(dp_glink_channel+1);
-  if(dp_glink_channel_data[dp_glink_channel_length-1])
-    return EFI_UNSUPPORTED;
-  const UINTN dp_glink_remote_length = (dp_glink_remote->Header.Length[0] | (dp_glink_remote->Header.Length[1]<<8)) - sizeof(VENDOR_DEVICE_PATH);
-  const char*const dp_glink_remote_data = (const char*)(dp_glink_remote+1);
-  if(dp_glink_remote_data[dp_glink_remote_length-1] || AsciiStrLen(dp_glink_remote_data)+1 >= dp_glink_remote_length)
-    return EFI_UNSUPPORTED;
+  {
+    EFI_DEVICE_PATH_PROTOCOL* nodes[3];
+    GetLastNNodes(device_path, 3, nodes);
+    if( !nodes[0] || !nodes[1] || !nodes[2]
+     || nodes[0]->Type != HARDWARE_DEVICE_PATH || nodes[0]->SubType != HW_VENDOR_DP
+     || nodes[1]->Type != HARDWARE_DEVICE_PATH || nodes[1]->SubType != HW_VENDOR_DP
+     || nodes[2]->Type != HARDWARE_DEVICE_PATH || nodes[2]->SubType != HW_VENDOR_DP
+    ){ Status=EFI_UNSUPPORTED; goto error_2; }
+    VENDOR_DEVICE_PATH* dp_ucsi = (VENDOR_DEVICE_PATH*)nodes[0];
+    VENDOR_DEVICE_PATH* dp_glink_channel = (VENDOR_DEVICE_PATH*)nodes[1];
+    VENDOR_DEVICE_PATH* dp_glink_remote = (VENDOR_DEVICE_PATH*)nodes[2];
+    if( !CompareGuid(&dp_ucsi->Guid, &gVDP_GlinkUcsiProtocolGuid)
+     || !CompareGuid(&dp_glink_channel->Guid, &gVDP_GlinkChannelProtocolGuid)
+     || !CompareGuid(&dp_glink_remote->Guid, &gVDP_GlinkRemoteProtocolGuid)
+    ){ Status=EFI_UNSUPPORTED; goto error_2; }
+    UINT16 glink_owner_id;
+    gBS->CopyMem(&glink_owner_id, dp_ucsi+1, 2);
+    const UINTN dp_glink_channel_length = (dp_glink_channel->Header.Length[0] | (dp_glink_channel->Header.Length[1]<<8)) - sizeof(VENDOR_DEVICE_PATH);
+    const char*const dp_glink_channel_data = (const char*)(dp_glink_channel+1);
+    if(dp_glink_channel_data[dp_glink_channel_length-1])
+      { Status=EFI_UNSUPPORTED; goto error_2; }
+    const UINTN dp_glink_remote_length = (dp_glink_remote->Header.Length[0] | (dp_glink_remote->Header.Length[1]<<8)) - sizeof(VENDOR_DEVICE_PATH);
+    const char*const dp_glink_remote_data = (const char*)(dp_glink_remote+1);
+    if(dp_glink_remote_data[dp_glink_remote_length-1] || AsciiStrLen(dp_glink_remote_data)+1 >= dp_glink_remote_length)
+      { Status=EFI_UNSUPPORTED; goto error_2; }
 
-  if(start){
-    const char*const xport   = dp_glink_remote_data;
-    const char*const remote  = dp_glink_remote_data + AsciiStrLen(dp_glink_remote_data)+1;
-    const char*const channel = dp_glink_channel_data;
-    DEBUG((EFI_D_WARN, "UCSI_BindingSupported: %a %a %a %04X\n", xport, remote, channel, glink_owner_id));
-    EFI_STATUS Status = glink_ucsi_init(&this->ucsi, xport, remote, channel);
-    if(EFI_ERROR(Status)){
-      DEBUG((EFI_D_ERROR, "glink_ucsi_create failed! Status = %r\n", Status));
-      return Status;
+    if(start){
+      const char*const xport   = dp_glink_remote_data;
+      const char*const remote  = dp_glink_remote_data + AsciiStrLen(dp_glink_remote_data)+1;
+      const char*const channel = dp_glink_channel_data;
+      DEBUG((EFI_D_WARN, "UCSI_BindingSupported: %a %a %a %04X\n", xport, remote, channel, glink_owner_id));
+      EFI_STATUS Status = glink_ucsi_init(&this->ucsi, xport, remote, channel);
+      if(EFI_ERROR(Status)){
+        DEBUG((EFI_D_ERROR, "glink_ucsi_create failed! Status = %r\n", Status));
+        goto error_2;
+      }
     }
+    return EFI_SUCCESS;
   }
-  return EFI_SUCCESS;
-  // TODO: free this if an error occurs
+
+error_2:
+  if(start){
+    gBS->UninstallMultipleProtocolInterfaces(
+      &this->handle,
+      &private_guid, this,
+      NULL
+    );
+    this->handle = 0;
+  }
+error:
+  if(start){
+    gBS->FreePool(this);
+  }
+  return Status;
 }
 
 EFI_STATUS connector_init(struct glink_ucsi* ucsi, int connector_index){

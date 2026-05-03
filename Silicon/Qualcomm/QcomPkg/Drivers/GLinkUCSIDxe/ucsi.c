@@ -198,6 +198,8 @@ static void ontransactiondone(const struct ucsi_transaction* t, EFI_STATUS error
     print_connector_status_record(&status);
     //hexdump(&t->message, 0x30);
   }
+  if(t->ontransactiondone)
+    t->ontransactiondone(t->userdata, &t->message, error, ucsi_error_status);
   DEBUG((EFI_D_WARN, "UCSI transaction done\n"));
 }
 
@@ -726,17 +728,46 @@ EFI_STATUS glink_ucsi_stop(struct glink_ucsi* this){
   this->glink = 0;
   gBS->CloseEvent(this->timeout_event);
   gBS->CloseEvent(this->state_change_event);
-  while(this->transaction_fifo_start)
-    transaction_detach(this->transaction_fifo_start, EFI_ABORTED);
+  while(this->transaction_fifo_start){
+    struct ucsi_transaction* t = this->transaction_fifo_start;
+    transaction_detach(t, EFI_ABORTED);
+    t->glink_ucsi = 0;
+  }
   return EFI_SUCCESS;
 }
 
-/*UCSI_PROTOCOL ucsi_protocol = {
-  .Open = glink_ucsi_create,
-  .Close = glink_ucsi_destroy,
-  .CreateTransactionSync = create_transaction_sync,
-  .CreateTransactionAsync = create_transaction_async,
-  .WriteAsync = ucsi_write_async,
-  .WriteSync = ucsi_write_sync,
-  .Read = ucsi_read_sync,
-};*/
+static struct ucsi_transaction* ucsi_create_transaction(struct glink_ucsi* ucsi){
+  static struct ucsi_transaction* t = 0;
+  EFI_STATUS Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*t), (VOID**)&t);
+  if(EFI_ERROR(Status))
+    return 0;
+  gBS->SetMem(t, sizeof(*t), 0);
+  t->glink_ucsi = ucsi;
+  return t;
+}
+
+ucsi_transaction_sync_t* ucsi_create_sync_transaction(struct glink_ucsi* ucsi){
+  return (ucsi_transaction_sync_t*)ucsi_create_transaction(ucsi);
+}
+ucsi_transaction_async_t* ucsi_create_async_transaction(
+  struct glink_ucsi* ucsi,
+  void* userdata,
+  void(*ontransactiondone)(void* userdata, const struct ucsi_data* data, EFI_STATUS error, UINT16 ucsi_error_status)
+){
+  struct ucsi_transaction* t = ucsi_create_transaction(ucsi);
+  t->userdata = userdata;
+  t->ontransactiondone = ontransactiondone;
+  return (ucsi_transaction_async_t*)t;
+}
+
+void ucsi_destroy_transaction(struct ucsi_transaction* t){
+  transaction_detach(t, EFI_ABORTED);
+  gBS->FreePool(t);
+}
+
+void ucsi_destroy_sync_transaction(ucsi_transaction_sync_t* t){
+  ucsi_destroy_transaction((struct ucsi_transaction*)t);
+}
+void ucsi_destroy_async_transaction(ucsi_transaction_async_t* t){
+  ucsi_destroy_transaction((struct ucsi_transaction*)t);
+}
