@@ -675,16 +675,9 @@ static void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN
   }
 }
 
-EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, EFI_HANDLE handle, const char* xport, const char* remote, const char* channel_name){
+EFI_STATUS glink_ucsi_init(struct glink_ucsi* this, const char* xport, const char* remote, const char* channel_name){
   EFI_STATUS Status = 0;
-  struct glink_ucsi* this = 0;
-  Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*this), (VOID**)&this);
-  if(EFI_ERROR(Status)){
-    DEBUG ((EFI_D_WARN, "glink_ucsi_create: AllocatePool failed\n"));
-    return EFI_DEVICE_ERROR;
-  }
   gBS->SetMem(this, sizeof(*this), 0);
-  this->handle = handle;
   this->transaction_fifo_end = &this->transaction_fifo_start;
   this->temp_transaction.glink_ucsi = this;
   this->temp_transaction.acknowledged = TRUE;
@@ -719,7 +712,6 @@ EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, EFI_HANDLE handle, const c
     DEBUG ((EFI_D_ERROR, "glink_ucsi_create: init failed! Status = %r\n", Status));
     return EFI_DEVICE_ERROR;
   }
-  *ret = this;
   return EFI_SUCCESS;
 }
 

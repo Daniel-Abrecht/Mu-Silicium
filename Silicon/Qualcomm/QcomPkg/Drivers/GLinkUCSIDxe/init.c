@@ -6,17 +6,12 @@
 #include <Protocol/DriverBinding.h>
 #include "ucsi.h"
 
-// TODO: Implement the driver binding protocol in the GLinkHelper driver and restructure it.
-// Currently, we initialize the glink channel in this channel using the glink helper protocol
-// after getting the channel information from the device path, but that should be done by the
-// GLinkHelper instead.
-
 extern EFI_GUID gVDP_GlinkRemoteProtocolGuid;
 extern EFI_GUID gVDP_GlinkChannelProtocolGuid;
 extern EFI_GUID gVDP_GlinkUcsiProtocolGuid;
 extern EFI_GUID gVDP_UCSIConnectorProtocolGuid;
 
-static EFI_HANDLE image_handle;
+static EFI_GUID private_guid = { 0x3448099e, 0x33ee, 0x4d54, {0xb4, 0xd1, 0x74, 0x28, 0x41, 0x4e, 0x3c, 0xf3} };
 
 VOID EFIAPI ExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
   // if(this->glink) mGlinkHelperProtocol->close(this->glink);
@@ -45,15 +40,89 @@ EFI_DEVICE_PATH_PROTOCOL* GetLastDevicePathNode(EFI_DEVICE_PATH_PROTOCOL* device
   return current;
 }
 
+EFI_STATUS connector_init(struct glink_ucsi* this, int connector_index);
+
+struct private_controller_data {
+  EFI_HANDLE handle;
+  EFI_DRIVER_BINDING_PROTOCOL* binding_protocol;
+  struct glink_ucsi ucsi;
+};
+
 static EFI_STATUS EFIAPI UCSI_BindingStartSupported(
-  IN EFI_DRIVER_BINDING_PROTOCOL *this,
+  IN EFI_DRIVER_BINDING_PROTOCOL *binding_protocol,
   IN EFI_HANDLE ControllerHandle,
   IN EFI_DEVICE_PATH_PROTOCOL *RemainingDevicePath OPTIONAL,
   BOOLEAN start
 ){
+  EFI_STATUS Status;
   EFI_DEVICE_PATH_PROTOCOL* device_path = DevicePathFromHandle(ControllerHandle);
   if(!device_path)
     return EFI_UNSUPPORTED;
+
+
+  struct private_controller_data* this = 0;
+  { // This block mainly deals with the case of an already initialized ucsi glink and when RemainingDevicePath is set
+    if(RemainingDevicePath){
+      if(RemainingDevicePath->Type != HARDWARE_DEVICE_PATH || RemainingDevicePath->SubType != HW_CONTROLLER_DP)
+        return EFI_UNSUPPORTED;
+    }
+    Status = gBS->OpenProtocol (
+      ControllerHandle,
+      &private_guid, (VOID**)&this,
+      binding_protocol->DriverBindingHandle,
+      ControllerHandle,
+      EFI_OPEN_PROTOCOL_GET_PROTOCOL
+    );
+    if(EFI_ERROR(Status) && Status != EFI_UNSUPPORTED)
+      return Status;
+    if(this && this->handle){
+      if(!this->ucsi.init_done)
+        return EFI_NOT_AVAILABLE_YET;
+      int connector_index = 0;
+      if(RemainingDevicePath){
+        CONTROLLER_DEVICE_PATH *ControllerNode = (CONTROLLER_DEVICE_PATH*)RemainingDevicePath;
+        connector_index = ControllerNode->ControllerNumber;
+        if(connector_index <= 0 || connector_index > this->ucsi.capability.bNumConnectors)
+          return EFI_UNSUPPORTED;
+      }
+      if(!start)
+        return EFI_SUCCESS;
+      if(connector_index == 0){
+        return connectors_init(&this->ucsi);
+      }else{
+        return connector_init(&this->ucsi, connector_index);
+      }
+    }else{
+      if(RemainingDevicePath)
+        return EFI_NOT_AVAILABLE_YET;
+      if(start){
+        Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*this), (VOID**)&this);
+        if(EFI_ERROR(Status)){
+          DEBUG ((EFI_D_WARN, "glink_ucsi_create: AllocatePool failed\n"));
+          return EFI_DEVICE_ERROR;
+        }
+        if(EFI_ERROR(Status))
+          return Status;
+        this->handle = 0;
+        this->ucsi.init_done = 0;
+        this->handle = ControllerHandle;
+        this->binding_protocol = binding_protocol;
+        Status = gBS->InstallMultipleProtocolInterfaces(
+          &ControllerHandle,
+          &private_guid, this,
+          NULL
+        );
+        if(EFI_ERROR(Status))
+          return Status;
+      }
+    }
+  }
+  
+// TODO: Implement the driver binding protocol in the GLinkHelper driver and restructure it.
+// Currently, we initialize the glink channel in this channel using the glink helper protocol
+// after getting the channel information from the device path, but that should be done by the
+// GLinkHelper instead.
+
   EFI_DEVICE_PATH_PROTOCOL* nodes[3];
   GetLastNNodes(device_path, 3, nodes);
   if( !nodes[0] || !nodes[1] || !nodes[2]
@@ -78,76 +147,133 @@ static EFI_STATUS EFIAPI UCSI_BindingStartSupported(
   const char*const dp_glink_remote_data = (const char*)(dp_glink_remote+1);
   if(dp_glink_remote_data[dp_glink_remote_length-1] || AsciiStrLen(dp_glink_remote_data)+1 >= dp_glink_remote_length)
     return EFI_UNSUPPORTED;
+
   if(start){
-    // static BOOLEAN initialized = FALSE; // TODO: check this properly!
-    // if(initialized)
-    //   return EFI_ALREADY_STARTED;
-    // initialized = TRUE;
     const char*const xport   = dp_glink_remote_data;
     const char*const remote  = dp_glink_remote_data + AsciiStrLen(dp_glink_remote_data)+1;
     const char*const channel = dp_glink_channel_data;
     DEBUG((EFI_D_WARN, "UCSI_BindingSupported: %a %a %a %04X\n", xport, remote, channel, glink_owner_id));
-    struct glink_ucsi* ucsi = 0;
-    EFI_STATUS Status = glink_ucsi_create(&ucsi, ControllerHandle, xport, remote, channel);
+    EFI_STATUS Status = glink_ucsi_init(&this->ucsi, xport, remote, channel);
     if(EFI_ERROR(Status)){
       DEBUG((EFI_D_ERROR, "glink_ucsi_create failed! Status = %r\n", Status));
       return Status;
     }
   }
   return EFI_SUCCESS;
+  // TODO: free this if an error occurs
 }
 
-void connectors_init(struct glink_ucsi* this){
+EFI_STATUS connector_init(struct glink_ucsi* ucsi, int connector_index){
+  struct private_controller_data* this = BASE_CR(ucsi, struct private_controller_data, ucsi);
   EFI_STATUS Status;
-  const int connector_count = this->capability.bNumConnectors;
-  Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*this->connector), (VOID**)&this->connector);
-  if(EFI_ERROR(Status)){
-    DEBUG((EFI_D_ERROR, "glink ucsi: connectors_init: AllocatePool failed! Status = %r\n", Status));
-    return;
-  }
   EFI_DEVICE_PATH_PROTOCOL* device_path = DevicePathFromHandle(this->handle);
+  if(!device_path)
+    return EFI_UNSUPPORTED;
+
+  if(!ucsi->connector)
+    return EFI_UNSUPPORTED;
+  const int connector_count = ucsi->capability.bNumConnectors;
+  if(connector_index < 1 || connector_index > connector_count)
+    return EFI_UNSUPPORTED;
+  struct ucsi_connector* connector = &ucsi->connector[connector_index-1];
+  if(connector->handle)
+    return EFI_ALREADY_STARTED;
+
   CONTROLLER_DEVICE_PATH controller_node = {
     .Header = {
       .Type = HARDWARE_DEVICE_PATH,
       .SubType = HW_CONTROLLER_DP,
       .Length = { sizeof(CONTROLLER_DEVICE_PATH) },
-    }
+    },
+    .ControllerNumber = connector_index,
   };
-  for(int i=0; i<connector_count; i++){
-    struct ucsi_connector* connector = &this->connector[i];
-    controller_node.ControllerNumber = i+1;
-    if(!DevicePathFromHandle(connector->handle)){
-      EFI_DEVICE_PATH_PROTOCOL* child_device_path = AppendDevicePathNode(device_path, &controller_node.Header);
-      Status = gBS->InstallMultipleProtocolInterfaces(
-        &connector->handle,
-        &gEfiDevicePathProtocolGuid, child_device_path,
-  //      &gMyCustomIoProtocolGuid,    MyIoInstance,
-        NULL
-      );
-      if(EFI_ERROR(Status)){
-        DEBUG((EFI_D_ERROR, "glink ucsi: connectors_init: InstallMultipleProtocolInterfaces failed! Status = %r\n", Status));
-        return;
-      }
-    }
 
-    VOID* protocol;
-    Status = gBS->OpenProtocol(
-      this->handle,
-      &gEfiDevicePathProtocolGuid, // TODO: once we move GlinkHelper to a proper device binding interface, we'll use the protocol it provides on this handle.
-      &protocol,
-      image_handle,
-      connector->handle,
-      EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
-    );
-    if(EFI_ERROR(Status)){
-      DEBUG((EFI_D_ERROR, "glink ucsi: connectors_init: OpenProtocol failed! Status = %r\n", Status));
-      return;
-    }
+  EFI_DEVICE_PATH_PROTOCOL* child_device_path = AppendDevicePathNode(device_path, &controller_node.Header);
+  Status = gBS->InstallMultipleProtocolInterfaces(
+    &connector->handle,
+    &gEfiDevicePathProtocolGuid, child_device_path,
+    NULL
+  );
+  if(EFI_ERROR(Status)){
+    DEBUG((EFI_D_ERROR, "glink ucsi: connector_init: InstallMultipleProtocolInterfaces failed! Status = %r\n", Status));
+    return Status;
   }
+
+  VOID* protocol;
+  Status = gBS->OpenProtocol(
+    this->handle,
+    &gEfiDevicePathProtocolGuid, // TODO: once we move GlinkHelper to a proper device binding interface, we'll use the protocol it provides on this handle.
+    &protocol,
+    this->binding_protocol->DriverBindingHandle,
+    connector->handle,
+    EFI_OPEN_PROTOCOL_BY_CHILD_CONTROLLER
+  );
+  if(EFI_ERROR(Status)){
+    DEBUG((EFI_D_ERROR, "glink ucsi: connector_init: OpenProtocol failed! Status = %r\n", Status));
+    gBS->UninstallMultipleProtocolInterfaces(
+      &connector->handle,
+      &gEfiDevicePathProtocolGuid, child_device_path,
+      NULL
+    );
+    this->handle = 0;
+    return Status;
+  }
+  return EFI_SUCCESS;
 }
 
-void connectors_destroy(struct glink_ucsi* this){
+EFI_STATUS connectors_init(struct glink_ucsi* ucsi){
+  EFI_STATUS Status;
+  const int connector_count = ucsi->capability.bNumConnectors;
+  Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*ucsi->connector), (VOID**)&ucsi->connector);
+  if(EFI_ERROR(Status)){
+    DEBUG((EFI_D_ERROR, "glink ucsi: connectors_init: AllocatePool failed! Status = %r\n", Status));
+    return Status;
+  }
+  for(int i=0; i<connector_count; i++){
+    Status = connector_init(ucsi, i+1);
+    if(EFI_ERROR(Status))
+      return Status;
+  }
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS connector_destroy(struct glink_ucsi* ucsi, int connector_index){
+  struct private_controller_data* this = BASE_CR(ucsi, struct private_controller_data, ucsi);
+  if(!ucsi->connector)
+    return EFI_UNSUPPORTED;
+  const int connector_count = ucsi->capability.bNumConnectors;
+  if(connector_index < 1 || connector_index > connector_count)
+    return EFI_UNSUPPORTED;
+  struct ucsi_connector* connector = &ucsi->connector[connector_index-1];
+  if(!connector->handle)
+    return EFI_SUCCESS;
+
+  gBS->UninstallMultipleProtocolInterfaces(
+    &connector->handle,
+    &gEfiDevicePathProtocolGuid, DevicePathFromHandle(connector->handle),
+    NULL
+  );
+  gBS->CloseProtocol(
+    this->handle,
+    &gEfiDevicePathProtocolGuid,
+    this->binding_protocol->DriverBindingHandle,
+    connector->handle
+  );
+  this->handle = 0;
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS connectors_destroy(struct glink_ucsi* ucsi){
+  struct private_controller_data* this = BASE_CR(ucsi, struct private_controller_data, ucsi);
+  if(!this->handle)
+    return EFI_SUCCESS;
+  unsigned connector_count = ucsi->capability.bNumConnectors;
+  for(int i=0; i<connector_count; i++)
+    connector_destroy(ucsi, i);
   
+  // TODO: free this and remove private protocol
+  this->handle = 0;
+  return EFI_SUCCESS;
 }
 
 
@@ -201,7 +327,6 @@ EFI_STATUS EFIAPI Main(
 ){
   DEBUG ((EFI_D_WARN, "ucsi_init\n"));
   EFI_STATUS Status;
-  image_handle = ImageHandle;
 
   Status = gBS->LocateProtocol (&gGlinkHelperProtocolGuid, NULL, (VOID *)&mGlinkHelperProtocol);
   if (EFI_ERROR (Status)) {

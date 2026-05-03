@@ -9,7 +9,7 @@ typedef struct GLINK_HELPER_PROTOCOL_ GLINK_HELPER_PROTOCOL;
 extern GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
 
 struct glink_ucsi;
-EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, EFI_HANDLE handle, const char* xport, const char* remote, const char* channel_name);
+EFI_STATUS glink_ucsi_init(struct glink_ucsi* ret, const char* xport, const char* remote, const char* channel_name);
 
 typedef struct ucsi_transaction_async ucsi_transaction_async_t;
 typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;
@@ -54,8 +54,6 @@ struct get_capability_in {
 
 
 struct glink_ucsi {
-  EFI_HANDLE handle;
-
   struct get_capability_in capability;
 
   UINT64 error_count;
@@ -119,8 +117,8 @@ struct ucsi_connector {
   struct get_connector_status_in connector_status;
 };
 
-void connectors_init(struct glink_ucsi* this);
-void connectors_destroy(struct glink_ucsi* this);
+EFI_STATUS connectors_init(struct glink_ucsi* this);
+EFI_STATUS connectors_destroy(struct glink_ucsi* this);
 
 
 #define UCSI_NOTIFICATION 0x13
