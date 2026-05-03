@@ -72,4 +72,6 @@
   ConfigurationMapLib|dodgePkg/Library/ConfigurationMapLib/ConfigurationMapLib.inf
   AcpiDeviceUpdateLib|SiliciumPkg/Library/AcpiDeviceUpdateLibNull/AcpiDeviceUpdateLibNull.inf
 
+[Components]
+  dodgePkg/Drivers/PlatformInitDxe/PlatformInitDxe.inf
 !include PakalaPkg/PakalaPkg.dsc.inc

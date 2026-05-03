@@ -1,6 +1,4 @@
 #include "ucsi.h"
-#include <Library/BitmapLib.h>
-#include <Library/DeadlineLib.h>
 #include <Protocol/GlinkHelper.h>
 
 // Everything is in ms
@@ -50,53 +48,12 @@ enum init_state {
   INIT_DONE
 };
 
-struct ucsi_transaction {
-  struct ucsi_data message;
-  struct ucsi_transaction* next;
-  struct glink_ucsi* glink_ucsi;
-  BOOLEAN acknowledged;
-  BOOLEAN done;
-  BOOLEAN error;
-};
-
-struct glink_ucsi {
-  UINT64 error_count;
-  UINT64 ack_required;
-  enum cmd_state state;
-  enum init_state init_state;
-  BOOLEAN init_done;
-
-  UINTN connector_changed_set[BITMAP_NUM_WORDS(0x80)];
-  BOOLEAN error_notification_received;
-
-  BOOLEAN in_state_machine;
-  BOOLEAN work_pending;
-  EFI_EVENT state_change_event;
-
-  EFI_EVENT timeout_event;
-  BOOLEAN timeout_active;
-  Deadline timeout_deadline;
-
-  glh_descriptor_t* glink;
-
-  // This transaction object is used internally for things like ACK_CC_CI, GET_CONNECTOR_STATUS, GET_ERROR_STATUS
-  // UCSI commands. They take a special role in the UCSI protocol, as they may need to be issued before other commands
-  // already in the queue, in the right order. So we make sure we always have a usable temp_transaction object for that.
-  struct ucsi_transaction temp_transaction;
-};
 
 extern EFI_GUID gGlinkHelperProtocolGuid;
-static GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
+GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
 
 STATIC VOID EFIAPI state_change_callback(IN EFI_EVENT Event, IN VOID *Context);
 STATIC VOID EFIAPI timeout_callback(IN EFI_EVENT Event, IN VOID *Context);
-
-static BOOLEAN transaction_in_progress; // Set if the first transaction transaction_fifo_start points to has been started already
-static struct ucsi_transaction *transaction_fifo_start;
-// transaction_fifo_end always points to transaction_fifo_start if transaction_fifo_start is null.
-// Else, it points top the next field of the last ucsi_transaction entry in the list.
-static struct ucsi_transaction **transaction_fifo_end=&transaction_fifo_start;
-
 
 static void timeout_start(struct glink_ucsi* this, UINT32 duration){
   DEBUG((EFI_D_WARN, "timeout_start\n"));
@@ -132,6 +89,25 @@ static EFI_STATUS ucsi_send_command_immediately(struct glink_ucsi* this, UINT64 
   struct ucsi_msg msg = {.hdr={ MSG_OWNER_UCSI, MSG_TYPE_REQ_RESP, OP_UCSI_WRITE }};
   gBS->CopyMem(&msg.ucsi[OFFSET_OF(struct ucsi_data, control)], &command, sizeof(command));
   return mGlinkHelperProtocol->send_sync(this->glink, &msg.hdr, sizeof(msg));
+}
+
+struct get_capability_in parse_capability_record(const struct ucsi_data* message){
+  UINT64 m[2] = {((UINT64*)message->message_in)[0], ((UINT64*)message->message_in)[1]};
+  const struct get_capability_in ret = {
+    .bmAttributes = m[0],
+
+    .bNumConnectors = m[0]>>32,
+    .Reserved1 = m[0]>>39,
+    .bmOptionalFeatures = m[0]>>40,
+
+    .bNumAltModes = m[1],
+    .Reserved2 = m[1]>>8,
+
+    .bcdBCVersion = m[1]>>16,
+    .bcdPDVersion = m[1]>>32,
+    .bcdUSBTypeCVersion = m[1]>>48,
+  };
+  return ret;
 }
 
 // Ideally, the compiler should be able to turn this function into 2 or 3 instructions: https://godbolt.org/z/ncrfzqnY7
@@ -227,17 +203,18 @@ static void ontransactiondone(const struct ucsi_transaction* t, EFI_STATUS error
 // Make sure to run this function in TPL_NOTIFY.
 
 static void transaction_detach(struct ucsi_transaction* t, EFI_STATUS completed_status){
+  struct glink_ucsi* this = t->glink_ucsi;
   EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
   if(t->done){
     gBS->RestoreTPL(OldTpl);
     return;
   }
-  if(t == transaction_fifo_start)
-    transaction_in_progress = FALSE;
-  for(struct ucsi_transaction** it = &transaction_fifo_start; *it; it=&(*it)->next){
+  if(t == this->transaction_fifo_start)
+    this->transaction_in_progress = FALSE;
+  for(struct ucsi_transaction** it = &this->transaction_fifo_start; *it; it=&(*it)->next){
     if(*it != t) continue;
-    if(*transaction_fifo_end == t)
-      transaction_fifo_end = it;
+    if(*this->transaction_fifo_end == t)
+      this->transaction_fifo_end = it;
     *it = t->next;
     t->next = 0;
     t->error = FALSE;
@@ -263,8 +240,8 @@ static EFI_STATUS transaction_enqueue(struct ucsi_transaction*restrict t, const 
   t->acknowledged = FALSE;
   t->done = FALSE;
   t->next = 0;
-  *transaction_fifo_end = t;
-  transaction_fifo_end = &t->next;
+  *this->transaction_fifo_end = t;
+  this->transaction_fifo_end = &t->next;
   this->work_pending = TRUE;
   gBS->SignalEvent(this->state_change_event);
   gBS->RestoreTPL(OldTpl);
@@ -290,7 +267,7 @@ next:;
   DEBUG((EFI_D_WARN, "ucsi_state_machine_tick: %a\n", cmd_state_name[this->state]));
   switch(this->state){
     case CMD_IDLE: {
-      ASSERT(!transaction_in_progress || this->error_notification_received);
+      ASSERT(!this->transaction_in_progress || this->error_notification_received);
 
       if(this->ack_required){
         DEBUG((EFI_D_WARN, "this->ack_required\n"));
@@ -319,11 +296,11 @@ next:;
         this->temp_transaction = (struct ucsi_transaction){
           .glink_ucsi = this,
           .message.control = UCSI_GET_ERROR_STATUS,
-          .next = &this->temp_transaction == transaction_fifo_start ? 0 : transaction_fifo_start,
+          .next = &this->temp_transaction == this->transaction_fifo_start ? 0 : this->transaction_fifo_start,
         };
-        transaction_fifo_start = &this->temp_transaction;
-        if(!transaction_fifo_end)
-          transaction_fifo_end = &this->temp_transaction.next;
+        this->transaction_fifo_start = &this->temp_transaction;
+        if(!this->transaction_fifo_end)
+          this->transaction_fifo_end = &this->temp_transaction.next;
         this->error_notification_received = FALSE;
         goto start_transaction;
       }
@@ -335,11 +312,11 @@ next:;
           this->temp_transaction = (struct ucsi_transaction){
             .glink_ucsi = this,
             .message.control = UCSI_SET_NOTIFICATION_ENABLE | (notifications<<16),
-            .next = transaction_fifo_start,
+            .next = this->transaction_fifo_start,
           };
-          transaction_fifo_start = &this->temp_transaction;
-          if(!transaction_fifo_end)
-            transaction_fifo_end = &this->temp_transaction.next;
+          this->transaction_fifo_start = &this->temp_transaction;
+          if(!this->transaction_fifo_end)
+            this->transaction_fifo_end = &this->temp_transaction.next;
           this->init_state = INIT_STEP_SET_NOTIFICATION;
           goto start_transaction;
         } break;
@@ -351,27 +328,29 @@ next:;
           this->temp_transaction = (struct ucsi_transaction){
             .glink_ucsi = this,
             .message.control = UCSI_GET_CAPABILITY,
-            .next = transaction_fifo_start,
+            .next = this->transaction_fifo_start,
           };
-          transaction_fifo_start = &this->temp_transaction;
-          if(!transaction_fifo_end)
-            transaction_fifo_end = &this->temp_transaction.next;
+          this->transaction_fifo_start = &this->temp_transaction;
+          if(!this->transaction_fifo_end)
+            this->transaction_fifo_end = &this->temp_transaction.next;
           this->init_state = INIT_STEP_GET_CAPABILITY;
           goto start_transaction;
         case INIT_STEP_GET_CAPABILITY:
           if(!this->temp_transaction.done)
             break;
+          this->capability = parse_capability_record(&this->temp_transaction.message);
           this->init_state = INIT_DONE;
           this->init_done = TRUE;
+          connectors_init(this);
         case INIT_DONE: break;
       }
 
-      if(transaction_fifo_start) start_transaction: {
+      if(this->transaction_fifo_start) start_transaction: {
         DEBUG((EFI_D_WARN, "start_transaction\n"));
         this->state = CMD_WRITE_IN_TRANSIT;
         timeout_start(this, TRANSACTION_TIMEOUT_DURATION);
         gBS->RestoreTPL(OldTpl);
-        Status = ucsi_write_immediately(this, &transaction_fifo_start->message); // This may call the ucsi_onreceive callback
+        Status = ucsi_write_immediately(this, &this->transaction_fifo_start->message); // This may call the ucsi_onreceive callback
         OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
         if(EFI_ERROR(Status) && this->state == CMD_WRITE_IN_TRANSIT){
           this->state = CMD_IDLE;
@@ -379,7 +358,7 @@ next:;
           errormsg = "ucsi_send_immediately UCSI_WRITE failed";
           goto error;
         }
-        transaction_in_progress = TRUE;
+        this->transaction_in_progress = TRUE;
         this->error_count = 0;
         goto next;
       }
@@ -395,11 +374,11 @@ next:;
           this->temp_transaction = (struct ucsi_transaction){
             .glink_ucsi = this,
             .message.control = UCSI_GET_CONNECTOR_STATUS | ((i*64+j)<<16),
-            .next = transaction_fifo_start,
+            .next = this->transaction_fifo_start,
           };
-          transaction_fifo_start = &this->temp_transaction;
-          if(!transaction_fifo_end)
-            transaction_fifo_end = &this->temp_transaction.next;
+          this->transaction_fifo_start = &this->temp_transaction;
+          if(!this->transaction_fifo_end)
+            this->transaction_fifo_end = &this->temp_transaction.next;
           goto start_transaction;
         }
       }
@@ -412,14 +391,14 @@ next:;
     case CMD_WRITE_DONE: { // This this->state is reached after an ACK is received
       timeout_clear(this);
       this->ack_required |= UCSI_ACK_COMMAND_COMPLETE;
-      transaction_fifo_start->acknowledged = TRUE;
-      if(!transaction_in_progress){
+      this->transaction_fifo_start->acknowledged = TRUE;
+      if(!this->transaction_in_progress){
         this->state = CMD_IDLE;
         goto next;
       }
       if(this->error_notification_received && this->temp_transaction.message.control != UCSI_GET_ERROR_STATUS){
-        if(transaction_in_progress)
-          transaction_fifo_start->error = TRUE;
+        if(this->transaction_in_progress)
+          this->transaction_fifo_start->error = TRUE;
         this->state = CMD_IDLE;
         goto next;
       }
@@ -434,7 +413,7 @@ next:;
         errormsg = "ucsi_send_immediately UCSI_WRITE failed";
         goto error;
       }
-      // transaction_fifo_start->acknowledged = TRUE;
+      // this->transaction_fifo_start->acknowledged = TRUE;
       this->error_count = 0;
     }; goto next;
     case CMD_READ_IN_TRANSIT: break;
@@ -442,8 +421,8 @@ next:;
       timeout_clear(this);
       this->error_count = 0;
       this->state = CMD_IDLE;
-      if(transaction_in_progress){
-        struct ucsi_transaction* t = transaction_fifo_start;
+      if(this->transaction_in_progress){
+        struct ucsi_transaction* t = this->transaction_fifo_start;
         this->error_notification_received = !!(t->message.cci & CCI_BIT_error); // BOOLEAN is not a _Bool
         DEBUG((EFI_D_WARN, "CCI %08X %08X %08X\n", t->message.cci, t->message.control, this->temp_transaction.message.control));
         if(this->error_notification_received && this->temp_transaction.message.control != UCSI_GET_ERROR_STATUS){
@@ -466,10 +445,10 @@ next:;
             this->temp_transaction.done = TRUE;
           }
         }
-        transaction_fifo_start = t->next;
-        if(!transaction_fifo_start)
-          transaction_fifo_end = &transaction_fifo_start;
-        transaction_in_progress = FALSE;
+        this->transaction_fifo_start = t->next;
+        if(!this->transaction_fifo_start)
+          this->transaction_fifo_end = &this->transaction_fifo_start;
+        this->transaction_in_progress = FALSE;
         t->next = 0;
         t->done = TRUE;
         gBS->RestoreTPL(OldTpl);
@@ -489,17 +468,17 @@ next:;
       this->error_count = 0;
       this->state = CMD_IDLE;
       if(this->error_notification_received && this->temp_transaction.message.control != UCSI_GET_ERROR_STATUS){
-        if(transaction_in_progress)
-          transaction_fifo_start->error = TRUE;
+        if(this->transaction_in_progress)
+          this->transaction_fifo_start->error = TRUE;
         goto next;
       }
       this->ack_required |= UCSI_ACK_COMMAND_COMPLETE | UCSI_ACK_CONNECTOR_CHANGE;
-      if(transaction_in_progress){
-        transaction_in_progress = FALSE;
-        struct ucsi_transaction* t = transaction_fifo_start;
-        transaction_fifo_start = t->next;
-        if(!transaction_fifo_start)
-          transaction_fifo_end = &transaction_fifo_start;
+      if(this->transaction_in_progress){
+        this->transaction_in_progress = FALSE;
+        struct ucsi_transaction* t = this->transaction_fifo_start;
+        this->transaction_fifo_start = t->next;
+        if(!this->transaction_fifo_start)
+          this->transaction_fifo_end = &this->transaction_fifo_start;
         t->next = 0;
         t->error = TRUE;
         t->acknowledged = TRUE;
@@ -519,6 +498,7 @@ next:;
         if(EFI_ERROR(Status)){
           DEBUG((EFI_D_ERROR, "ucsi: Sending PPM reset command failed!\n"));
         }else{
+          connectors_destroy(this);
           this->init_state = INIT_START;
           this->init_done = FALSE;
           this->ack_required = 0;
@@ -647,12 +627,12 @@ static void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN
   if(data->type == MSG_TYPE_REQ_RESP){
     if(data->opcode == OP_UCSI_READ){
       if(this->state == CMD_READ_IN_TRANSIT){
-        if(transaction_in_progress && size){
+        if(this->transaction_in_progress && size){
           // copying only version, reserved, cci, message_in
           // not copying control, message_out
-          gBS->CopyMem(&transaction_fifo_start->message, (void*)(data+1), size > 8 ? 8 : size);
+          gBS->CopyMem(&this->transaction_fifo_start->message, (void*)(data+1), size > 8 ? 8 : size);
           if(size > 16)
-            gBS->CopyMem(&transaction_fifo_start->message.message_in, (void*)(data+1)+16, size-16 > 16 ? 16 : size-16);
+            gBS->CopyMem(&this->transaction_fifo_start->message.message_in, (void*)(data+1)+16, size-16 > 16 ? 16 : size-16);
         }
         set_state(this, CMD_READ_DONE);
       }else{
@@ -695,7 +675,7 @@ static void onreceive(struct glh_descriptor* glhd, struct glink_hdr* data, UINTN
   }
 }
 
-EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, const char* xport, const char* remote, const char* channel_name){
+EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, EFI_HANDLE handle, const char* xport, const char* remote, const char* channel_name){
   EFI_STATUS Status = 0;
   struct glink_ucsi* this = 0;
   Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*this), (VOID**)&this);
@@ -704,6 +684,8 @@ EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, const char* xport, const c
     return EFI_DEVICE_ERROR;
   }
   gBS->SetMem(this, sizeof(*this), 0);
+  this->handle = handle;
+  this->transaction_fifo_end = &this->transaction_fifo_start;
   this->temp_transaction.glink_ucsi = this;
   this->temp_transaction.acknowledged = TRUE;
   this->temp_transaction.done = TRUE;
@@ -741,45 +723,12 @@ EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, const char* xport, const c
   return EFI_SUCCESS;
 }
 
-VOID EFIAPI ExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
-  // if(this->glink) mGlinkHelperProtocol->close(this->glink);
-}
-
-EFI_STATUS EFIAPI Main(
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE *SystemTable
-){
-  DEBUG ((EFI_D_WARN, "ucsi_init\n"));
-  EFI_STATUS Status;
-
-  Status = gBS->LocateProtocol (&gGlinkHelperProtocolGuid, NULL, (VOID *)&mGlinkHelperProtocol);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "Failed to Locate GlinkHelper Protocol! Status = %r\n", Status));
-    goto error;
-  }
-
-  {
-    static EFI_EVENT ExitEvt;
-    Status = gBS->CreateEvent(EVT_SIGNAL_EXIT_BOOT_SERVICES, TPL_NOTIFY, ExitBootServices, NULL, &ExitEvt);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "CreateEvent for EVT_SIGNAL_EXIT_BOOT_SERVICES failed! Status = %r\n", Status));
-      goto error;
-    }
-  }
-
-  struct glink_ucsi* ucsi = 0;
-  Status = glink_ucsi_create(&ucsi, "SMEM", "lpass", "PMIC_RTR_ADSP_APPS");
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "glink_ucsi_create failed! Status = %r\n", Status));
-    goto error;
-  }
-  DEBUG ((EFI_D_WARN, "ucsi_init done!\n"));
-
-  while(1){
-    gBS->Stall(1000000);
-  }
-
-  return EFI_SUCCESS;
-error:
-  return EFI_DEVICE_ERROR;
-}
+/*UCSI_PROTOCOL ucsi_protocol = {
+  .Open = glink_ucsi_create,
+  .Close = glink_ucsi_destroy,
+  .CreateTransactionSync = create_transaction_sync,
+  .CreateTransactionAsync = create_transaction_async,
+  .WriteAsync = ucsi_write_async,
+  .WriteSync = ucsi_write_sync,
+  .Read = ucsi_read_sync,
+};*/

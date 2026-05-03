@@ -1,6 +1,8 @@
 #ifndef GLINK_HELPER_H
 #define GLINK_HELPER_H
 
+#define GLINK_HELPER_PROTOCOL_GUID  { 0x613fe4e2, 0x53d6, 0x447f, { 0x83, 0x7e, 0x65, 0xb9, 0x49, 0xe0, 0xd3, 0xab } }
+
 #define MSG_OWNER_CHARGER 0x800A
 #define MSG_OWNER_UCSI 0x800B
 #define MSG_OWNER_CPAN 0x800C

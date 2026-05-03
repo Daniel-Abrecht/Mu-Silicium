@@ -2,6 +2,126 @@
 #define UCSI_H
 
 #include <Library/DebugLib.h>
+#include <Library/BitmapLib.h>
+#include <Library/DeadlineLib.h>
+
+typedef struct GLINK_HELPER_PROTOCOL_ GLINK_HELPER_PROTOCOL;
+extern GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
+
+struct glink_ucsi;
+EFI_STATUS glink_ucsi_create(struct glink_ucsi** ret, EFI_HANDLE handle, const char* xport, const char* remote, const char* channel_name);
+
+typedef struct ucsi_transaction_async ucsi_transaction_async_t;
+typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;
+
+struct ucsi_data {
+  UINT16 version; // 8 major, 4 minor, 4 patch
+  UINT16 reserved;
+  UINT32 cci;
+  UINT64 control;
+  UINT8 message_in [0x10];
+  UINT8 message_out[0x10];
+};
+_Static_assert(sizeof(struct ucsi_data) == 0x30, "UCSI data structure had unexpected size");
+
+EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* t, const struct ucsi_data* ucsi_message);
+EFI_STATUS ucsi_write_sync(ucsi_transaction_sync_t* t, const struct ucsi_data* ucsi_message);
+EFI_STATUS ucsi_read_sync(ucsi_transaction_sync_t* t, struct ucsi_data* ucsi_message);
+
+struct ucsi_transaction {
+  struct ucsi_data message;
+  struct ucsi_transaction* next;
+  struct glink_ucsi* glink_ucsi;
+  BOOLEAN acknowledged;
+  BOOLEAN done;
+  BOOLEAN error;
+};
+
+struct get_capability_in {
+  UINT32 bmAttributes : 32;       //   0 -  31
+
+  UINT32 bNumConnectors : 7;      //  32 -  38
+  UINT32 Reserved1 : 1;           //        39
+  UINT32 bmOptionalFeatures : 24; //  40 -  63
+
+  UINT8 bNumAltModes : 8;         //  64 -  71
+  UINT8 Reserved2 : 8;            //  72 -  79
+
+  UINT16 bcdBCVersion : 16;       //  80 -  95
+  UINT16 bcdPDVersion : 16;       //  96 - 111
+  UINT16 bcdUSBTypeCVersion : 16; // 112 - 127
+};
+
+
+struct glink_ucsi {
+  EFI_HANDLE handle;
+
+  struct get_capability_in capability;
+
+  UINT64 error_count;
+  UINT64 ack_required;
+  enum cmd_state state;
+  enum init_state init_state;
+  BOOLEAN init_done;
+
+  UINTN connector_changed_set[BITMAP_NUM_WORDS(0x80)];
+  BOOLEAN error_notification_received;
+
+  BOOLEAN in_state_machine;
+  BOOLEAN work_pending;
+  EFI_EVENT state_change_event;
+
+  EFI_EVENT timeout_event;
+  BOOLEAN timeout_active;
+  Deadline timeout_deadline;
+
+  BOOLEAN transaction_in_progress; // Set if the first transaction this->transaction_fifo_start points to has been started already
+  struct ucsi_transaction *transaction_fifo_start;
+  // transaction_fifo_end always points to transaction_fifo_start if transaction_fifo_start is null.
+  // Else, it points top the next field of the last ucsi_transaction entry in the list.
+  struct ucsi_transaction **transaction_fifo_end;
+
+  struct glh_descriptor* glink;
+  struct ucsi_connector* connector;
+
+  // This transaction object is used internally for things like ACK_CC_CI, GET_CONNECTOR_STATUS, GET_ERROR_STATUS
+  // UCSI commands. They take a special role in the UCSI protocol, as they may need to be issued before other commands
+  // already in the queue, in the right order. So we make sure we always have a usable temp_transaction object for that.
+  struct ucsi_transaction temp_transaction;
+};
+
+struct get_connector_status_in {
+  UINT16 connector_status_change;                  //  0 -  15
+
+  UINT16 power_operation_mode : 3;                 // 16 -  18
+  UINT16 connect_status  : 1;                      // 19
+  UINT16 power_direction : 1;                      // 20
+  UINT16 connector_partner_flags : 8;              // 21 -  28
+  UINT16 connector_partner_type : 3;               // 29 -  31
+
+  UINT32 request_data_object;                      // 32 -  63
+
+  UINT32 battery_charging_capability_status : 2;   // 64 -  65
+  UINT32 provider_capabilities_limited_reason : 4; // 66 -  69
+  UINT32 bcd_pd_version_operation_mode : 16;       // 70 -  85
+  UINT32 orientation : 1;                          // 86
+  UINT32 sink_path_status : 1;                     // 87
+  UINT32 reverse_current_protection_status : 1;    // 88
+  UINT32 reserved : 7;                             // 89 -  95
+
+  UINT32 reserved_2;                               // 96 - 128
+};
+// We fill it in with bit shifts. At worst, it's going to be a bit less efficient.
+//_Static_assert(sizeof(struct get_connector_status_in) == 0x10, "get_connector_status_in data structure had unexpected size");
+
+struct ucsi_connector {
+  EFI_HANDLE handle;
+  struct get_connector_status_in connector_status;
+};
+
+void connectors_init(struct glink_ucsi* this);
+void connectors_destroy(struct glink_ucsi* this);
+
 
 #define UCSI_NOTIFICATION 0x13
 
@@ -20,6 +140,7 @@
 #define CCI_BIT_acknowledge_command (1<<29)
 #define CCI_BIT_error               (1<<30)
 #define CCI_BIT_command_completed   (1<<31)
+
 
 enum {
   UCSI_PPM_RESET = 0x01,
@@ -52,16 +173,6 @@ enum {
   UCSI_SET_SINK_PATH = 0x1C,
 };
 
-struct ucsi_data {
-  UINT16 version; // 8 major, 4 minor, 4 patch
-  UINT16 reserved;
-  UINT32 cci;
-  UINT64 control;
-  UINT8 message_in [0x10];
-  UINT8 message_out[0x10];
-};
-_Static_assert(sizeof(struct ucsi_data) == 0x30, "UCSI data structure had unexpected size");
-
 enum control_flags__set_notification_enable {
   UCSI_SN_COMMAND_COMPLETED = 1<<16, // (R)
   UCSI_SN_EXTERNAL_SUPPLY_CHANGE = 1<<17, // (O)
@@ -88,30 +199,6 @@ struct ucsi_notification {
   UINT32 reserved;
 };
 
-struct get_connector_status_in {
-  UINT16 connector_status_change;                  //  0 -  15
-
-  UINT16 power_operation_mode : 3;                 // 16 -  18
-  UINT16 connect_status  : 1;                      // 19
-  UINT16 power_direction : 1;                      // 20
-  UINT16 connector_partner_flags : 8;              // 21 -  28
-  UINT16 connector_partner_type : 3;               // 29 -  31
-
-  UINT32 request_data_object;                      // 32 -  63
-
-  UINT32 battery_charging_capability_status : 2;   // 64 -  65
-  UINT32 provider_capabilities_limited_reason : 4; // 66 -  69
-  UINT32 bcd_pd_version_operation_mode : 16;       // 70 -  85
-  UINT32 orientation : 1;                          // 86
-  UINT32 sink_path_status : 1;                     // 87
-  UINT32 reverse_current_protection_status : 1;    // 88
-  UINT32 reserved : 7;                             // 89 -  95
-
-  UINT32 reserved_2;                               // 96 - 128
-};
-// We fill it in with bit shifts. At worst, it's going to be a bit less efficient.
-//_Static_assert(sizeof(struct get_connector_status_in) == 0x10, "get_connector_status_in data structure had unexpected size");
-
 //  GET_ERROR_STATUS::error_information
 #define UCSI_ESI_UNRECOGNIZED_COMMAND (1<<0)
 #define UCSI_ESI_NON_EXISTENT_CONNECTOR_NUMBER (1<<1)
@@ -129,11 +216,5 @@ struct get_connector_status_in {
 #define UCSI_ESI_REVERSE_CURRENT_PROTECTION (1<<13)
 #define UCSI_ESI_SET_SINK_PATH_REJECTED (1<<14)
 
-typedef struct ucsi_transaction_async ucsi_transaction_async_t;
-typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;
-
-EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* t, const struct ucsi_data* ucsi_message);
-EFI_STATUS ucsi_write_sync(ucsi_transaction_sync_t* t, const struct ucsi_data* ucsi_message);
-EFI_STATUS ucsi_read_sync(ucsi_transaction_sync_t* t, struct ucsi_data* ucsi_message);
 
 #endif

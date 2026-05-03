@@ -8,6 +8,7 @@
 
 [Sources]
   ucsi.c
+  init.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -15,13 +16,23 @@
   SiliciumPkg/SiliciumPkg.dec
 
 [LibraryClasses]
+  BaseLib
   DebugLib
   UefiDriverEntryPoint
   UefiBootServicesTableLib
+  BaseMemoryLib
+  DevicePathLib
   DeadlineLib
+
+[Guids]
+  gVDP_GlinkRemoteProtocolGuid
+  gVDP_GlinkChannelProtocolGuid
+  gVDP_GlinkUcsiProtocolGuid
+  gVDP_UCSIConnectorProtocolGuid
 
 [Protocols]
   gGlinkHelperProtocolGuid
+  gEfiDriverBindingProtocolGuid
 
 [Depex]
   TRUE

@@ -1,0 +1,24 @@
+[Defines]
+  INF_VERSION                    = 0x0010005
+  BASE_NAME                      = PlatformInitDxe
+  FILE_GUID                      = 43da2f67-97ab-4339-bf1f-a23ebe93dd44
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Init
+
+[Sources]
+  PlatformInitDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  DebugLib
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+
+[Protocols]
+  gEfiDevicePathProtocolGuid
+
+[Depex]
+  TRUE

@@ -1,5 +1,6 @@
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
+  INF dodgePkg/Drivers/PlatformInitDxe/PlatformInitDxe.inf
 
   INF Binaries/dodge/QcomPkg/Drivers/EnvDxe/EnvDxeEnhanced.inf
 
