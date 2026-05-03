@@ -9,7 +9,8 @@ typedef struct GLINK_HELPER_PROTOCOL_ GLINK_HELPER_PROTOCOL;
 extern GLINK_HELPER_PROTOCOL* mGlinkHelperProtocol;
 
 struct glink_ucsi;
-EFI_STATUS glink_ucsi_init(struct glink_ucsi* ret, const char* xport, const char* remote, const char* channel_name);
+EFI_STATUS glink_ucsi_init(struct glink_ucsi* ucsi, const char* xport, const char* remote, const char* channel_name);
+EFI_STATUS glink_ucsi_stop(struct glink_ucsi* ucsi);
 
 typedef struct ucsi_transaction_async ucsi_transaction_async_t;
 typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;

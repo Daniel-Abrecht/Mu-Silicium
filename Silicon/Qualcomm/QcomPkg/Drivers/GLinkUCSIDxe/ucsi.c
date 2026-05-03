@@ -29,7 +29,8 @@ struct ucsi_msg {
   X(CMD_ACK_IN_TRANSIT) \
   X(CMD_ACK_DONE) \
   X(CMD_ERROR_HAPPENED) \
-  X(CMD_RESET_DELAY)
+  X(CMD_RESET_DELAY) \
+  X(CMD_DESTRUCTION)
 
 #define X(S) S,
 enum cmd_state { CMD_STATE_LIST };
@@ -203,8 +204,8 @@ static void ontransactiondone(const struct ucsi_transaction* t, EFI_STATUS error
 // Make sure to run this function in TPL_NOTIFY.
 
 static void transaction_detach(struct ucsi_transaction* t, EFI_STATUS completed_status){
-  struct glink_ucsi* this = t->glink_ucsi;
   EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+  struct glink_ucsi* this = t->glink_ucsi;
   if(t->done){
     gBS->RestoreTPL(OldTpl);
     return;
@@ -229,9 +230,9 @@ static void transaction_detach(struct ucsi_transaction* t, EFI_STATUS completed_
 
 // Adds a transaction to the end of the transaction queue
 static EFI_STATUS transaction_enqueue(struct ucsi_transaction*restrict t, const struct ucsi_data*restrict ucsi_message){
-  struct glink_ucsi* this = t->glink_ucsi;
   EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
-  if(!t->done){
+  struct glink_ucsi* this = t->glink_ucsi;
+  if(!t->done || this->state == CMD_DESTRUCTION){
     gBS->RestoreTPL(OldTpl);
     return EFI_ABORTED;
   }
@@ -524,6 +525,7 @@ next:;
         goto next;
       }
     } break;
+    case CMD_DESTRUCTION: break;
   }
   // DEBUG((EFI_D_WARN, "ucsi_state_machine_tick %a -> %a\n", cmd_state_name[old_state], cmd_state_name[this->state]));
   this->in_state_machine = FALSE;
@@ -712,6 +714,20 @@ EFI_STATUS glink_ucsi_init(struct glink_ucsi* this, const char* xport, const cha
     DEBUG ((EFI_D_ERROR, "glink_ucsi_create: init failed! Status = %r\n", Status));
     return EFI_DEVICE_ERROR;
   }
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS glink_ucsi_stop(struct glink_ucsi* this){
+  EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+  this->state = CMD_DESTRUCTION; // This will new transactions to be enqueued
+  this->work_pending = FALSE;
+  gBS->RestoreTPL(OldTpl);
+  mGlinkHelperProtocol->close(this->glink);
+  this->glink = 0;
+  gBS->CloseEvent(this->timeout_event);
+  gBS->CloseEvent(this->state_change_event);
+  while(this->transaction_fifo_start)
+    transaction_detach(this->transaction_fifo_start, EFI_ABORTED);
   return EFI_SUCCESS;
 }
 

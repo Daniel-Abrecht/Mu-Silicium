@@ -32,6 +32,7 @@ void GetLastNNodes(EFI_DEVICE_PATH_PROTOCOL* device_path, int n, EFI_DEVICE_PATH
 }
 
 EFI_DEVICE_PATH_PROTOCOL* GetLastDevicePathNode(EFI_DEVICE_PATH_PROTOCOL* device_path){
+  if(!device_path) return 0;
   EFI_DEVICE_PATH_PROTOCOL *current=device_path, *next=device_path;
   while(!IsDevicePathEndType(next)){
     current = next;
@@ -270,9 +271,14 @@ EFI_STATUS connectors_destroy(struct glink_ucsi* ucsi){
   unsigned connector_count = ucsi->capability.bNumConnectors;
   for(int i=0; i<connector_count; i++)
     connector_destroy(ucsi, i);
-  
-  // TODO: free this and remove private protocol
+  glink_ucsi_stop(ucsi);
+  gBS->UninstallMultipleProtocolInterfaces(
+    &this->handle,
+    &private_guid, this,
+    NULL
+  );
   this->handle = 0;
+  gBS->FreePool(this);
   return EFI_SUCCESS;
 }
 
@@ -294,12 +300,34 @@ static EFI_STATUS EFIAPI UCSI_BindingStart(
 }
 
 static EFI_STATUS EFIAPI UCSI_BindingStop(
-  IN EFI_DRIVER_BINDING_PROTOCOL *this,
+  IN EFI_DRIVER_BINDING_PROTOCOL *binding_protocol,
   IN EFI_HANDLE ControllerHandle,
   IN UINTN NumberOfChildren,
   IN EFI_HANDLE *ChildHandleBuffer OPTIONAL
 ){
-  // TODO
+  struct private_controller_data* this = 0;
+  EFI_STATUS Status = gBS->OpenProtocol (
+    ControllerHandle,
+    &private_guid, (VOID**)&this,
+    binding_protocol->DriverBindingHandle,
+    ControllerHandle,
+    EFI_OPEN_PROTOCOL_GET_PROTOCOL
+  );
+  if(Status != EFI_UNSUPPORTED)
+    return EFI_SUCCESS;
+  if(EFI_ERROR(Status))
+    return Status;
+  if(ChildHandleBuffer){
+    for(int i=0; i<NumberOfChildren; i++){
+      EFI_DEVICE_PATH_PROTOCOL* dp = GetLastDevicePathNode(DevicePathFromHandle(ChildHandleBuffer[i]));
+      if(dp->Type != HARDWARE_DEVICE_PATH || dp->SubType != HW_CONTROLLER_DP)
+        continue;
+      CONTROLLER_DEVICE_PATH* dp_controller_node = (CONTROLLER_DEVICE_PATH*)dp;
+      connector_destroy(&this->ucsi, dp_controller_node->ControllerNumber);
+    }
+    return EFI_SUCCESS;
+  }
+  connectors_destroy(&this->ucsi);
   return EFI_SUCCESS;
 }
 
