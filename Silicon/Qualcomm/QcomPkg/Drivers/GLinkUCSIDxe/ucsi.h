@@ -1,6 +1,8 @@
 #ifndef UCSI_H
 #define UCSI_H
 
+#include <Protocol/EFIUCSIOPM.h>
+
 #include <Library/DebugLib.h>
 #include <Library/BitmapLib.h>
 #include <Library/DeadlineLib.h>
@@ -14,16 +16,6 @@ EFI_STATUS glink_ucsi_stop(struct glink_ucsi* ucsi);
 
 typedef struct ucsi_transaction_async ucsi_transaction_async_t;
 typedef struct ucsi_transaction_sync  ucsi_transaction_sync_t;
-
-struct ucsi_data {
-  UINT16 version; // 8 major, 4 minor, 4 patch
-  UINT16 reserved;
-  UINT32 cci;
-  UINT64 control;
-  UINT8 message_in [0x10];
-  UINT8 message_out[0x10];
-};
-_Static_assert(sizeof(struct ucsi_data) == 0x30, "UCSI data structure had unexpected size");
 
 EFI_STATUS ucsi_write_async(ucsi_transaction_async_t* t, const struct ucsi_data* ucsi_message);
 EFI_STATUS ucsi_write_sync(ucsi_transaction_sync_t* t, const struct ucsi_data* ucsi_message);
@@ -50,7 +42,7 @@ struct ucsi_transaction {
   BOOLEAN error;
 };
 
-struct get_capability_in {
+struct ucsi_get_capability_in {
   UINT32 bmAttributes : 32;       //   0 -  31
 
   UINT32 bNumConnectors : 7;      //  32 -  38
@@ -67,7 +59,7 @@ struct get_capability_in {
 
 
 struct glink_ucsi {
-  struct get_capability_in capability;
+  struct ucsi_get_capability_in capability;
 
   UINT64 error_count;
   UINT64 ack_required;
@@ -101,7 +93,7 @@ struct glink_ucsi {
   struct ucsi_transaction temp_transaction;
 };
 
-struct get_connector_status_in {
+struct ucsi_get_connector_status_in {
   UINT16 connector_status_change;                  //  0 -  15
 
   UINT16 power_operation_mode : 3;                 // 16 -  18
@@ -123,11 +115,12 @@ struct get_connector_status_in {
   UINT32 reserved_2;                               // 96 - 128
 };
 // We fill it in with bit shifts. At worst, it's going to be a bit less efficient.
-//_Static_assert(sizeof(struct get_connector_status_in) == 0x10, "get_connector_status_in data structure had unexpected size");
+//_Static_assert(sizeof(struct ucsi_get_connector_status_in) == 0x10, "ucsi_get_connector_status_in data structure had unexpected size");
 
 struct ucsi_connector {
   EFI_HANDLE handle;
-  struct get_connector_status_in connector_status;
+  struct ucsi_get_connector_status_in connector_status;
+  EFI_UCSI_OPM_CONNECTOR_PROTOCOL protocol;
 };
 
 EFI_STATUS connectors_init(struct glink_ucsi* this);

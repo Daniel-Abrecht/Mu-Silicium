@@ -11,6 +11,9 @@ extern EFI_GUID gVDP_GlinkChannelProtocolGuid;
 extern EFI_GUID gVDP_GlinkUcsiProtocolGuid;
 extern EFI_GUID gVDP_UCSIConnectorProtocolGuid;
 
+extern EFI_GUID gUcsiOpmProtocolGuid;
+extern EFI_GUID gUcsiConnectorOpmProtocolGuid;
+
 static EFI_GUID private_guid = { 0x3448099e, 0x33ee, 0x4d54, {0xb4, 0xd1, 0x74, 0x28, 0x41, 0x4e, 0x3c, 0xf3} };
 
 VOID EFIAPI ExitBootServices(IN EFI_EVENT Event, IN VOID *Context) {
@@ -46,8 +49,38 @@ EFI_STATUS connector_init(struct glink_ucsi* this, int connector_index);
 struct private_controller_data {
   EFI_HANDLE handle;
   EFI_DRIVER_BINDING_PROTOCOL* binding_protocol;
+  EFI_UCSI_OPM_PROTOCOL protocol;
   struct glink_ucsi ucsi;
 };
+
+static ucsi_transaction_sync_t* create_sync_transaction_wrapper(EFI_UCSI_OPM_PROTOCOL* controller){
+  struct glink_ucsi* ucsi = &BASE_CR(controller, struct private_controller_data, protocol)->ucsi;
+  return ucsi_create_sync_transaction(ucsi);
+}
+
+static ucsi_transaction_async_t* create_async_transaction_wrapper(
+  EFI_UCSI_OPM_PROTOCOL* controller,
+  void* userdata,
+  void(*ontransactiondone)(void* userdata, const struct ucsi_data* data, EFI_STATUS error, UINT16 ucsi_error_status)
+){
+  struct glink_ucsi* ucsi = &BASE_CR(controller, struct private_controller_data, protocol)->ucsi;
+  return ucsi_create_async_transaction(ucsi, userdata, ontransactiondone);
+}
+
+static const EFI_UCSI_OPM_PROTOCOL_INTERFACE ucsi_opm_protocol_interface = {
+  .create_sync_transaction = create_sync_transaction_wrapper,
+  .create_async_transaction = create_async_transaction_wrapper,
+  .destroy_sync_transaction = ucsi_destroy_sync_transaction,
+  .destroy_async_transaction = ucsi_destroy_async_transaction,
+
+  .write_async = ucsi_write_async,
+  .write_sync = ucsi_write_sync,
+  .read_sync = ucsi_read_sync,
+};
+
+struct EFI_UCSI_OPM_CONNECTOR_PROTOCOL_INTERFACE_ {
+  int tmp;
+} ucsi_opm_controller_protocol_interface = {0};
 
 static EFI_STATUS EFIAPI UCSI_BindingStartSupported(
   IN EFI_DRIVER_BINDING_PROTOCOL *binding_protocol,
@@ -108,9 +141,12 @@ static EFI_STATUS EFIAPI UCSI_BindingStartSupported(
         this->ucsi.init_done = 0;
         this->handle = ControllerHandle;
         this->binding_protocol = binding_protocol;
+        this->protocol.I = &ucsi_opm_protocol_interface;
+        this->protocol.capability = &this->ucsi.capability;
         Status = gBS->InstallMultipleProtocolInterfaces(
           &ControllerHandle,
           &private_guid, this,
+          &gUcsiOpmProtocolGuid, &this->protocol,
           NULL
         );
         if(EFI_ERROR(Status))
@@ -196,6 +232,11 @@ EFI_STATUS connector_init(struct glink_ucsi* ucsi, int connector_index){
   if(connector->handle)
     return EFI_ALREADY_STARTED;
 
+  connector->protocol.I = &ucsi_opm_controller_protocol_interface;
+  connector->protocol.index = connector_index;
+  connector->protocol.controller = &this->protocol;
+  connector->protocol.connector_status = &connector->connector_status;
+
   CONTROLLER_DEVICE_PATH controller_node = {
     .Header = {
       .Type = HARDWARE_DEVICE_PATH,
@@ -209,6 +250,7 @@ EFI_STATUS connector_init(struct glink_ucsi* ucsi, int connector_index){
   Status = gBS->InstallMultipleProtocolInterfaces(
     &connector->handle,
     &gEfiDevicePathProtocolGuid, child_device_path,
+    &gUcsiConnectorOpmProtocolGuid, &connector->protocol,
     NULL
   );
   if(EFI_ERROR(Status)){
@@ -294,6 +336,8 @@ EFI_STATUS connectors_destroy(struct glink_ucsi* ucsi){
     NULL
   );
   this->handle = 0;
+  if(ucsi->connector)
+    gBS->FreePool(ucsi->connector);
   gBS->FreePool(this);
   return EFI_SUCCESS;
 }

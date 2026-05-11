@@ -92,9 +92,9 @@ static EFI_STATUS ucsi_send_command_immediately(struct glink_ucsi* this, UINT64 
   return mGlinkHelperProtocol->send_sync(this->glink, &msg.hdr, sizeof(msg));
 }
 
-struct get_capability_in parse_capability_record(const struct ucsi_data* message){
+struct ucsi_get_capability_in parse_capability_record(const struct ucsi_data* message){
   UINT64 m[2] = {((UINT64*)message->message_in)[0], ((UINT64*)message->message_in)[1]};
-  const struct get_capability_in ret = {
+  const struct ucsi_get_capability_in ret = {
     .bmAttributes = m[0],
 
     .bNumConnectors = m[0]>>32,
@@ -112,9 +112,9 @@ struct get_capability_in parse_capability_record(const struct ucsi_data* message
 }
 
 // Ideally, the compiler should be able to turn this function into 2 or 3 instructions: https://godbolt.org/z/ncrfzqnY7
-struct get_connector_status_in parse_connector_status_record(const struct ucsi_data* message){
+struct ucsi_get_connector_status_in parse_connector_status_record(const struct ucsi_data* message){
   UINT64 m[2] = {((UINT64*)message->message_in)[0], ((UINT64*)message->message_in)[1]};
-  const struct get_connector_status_in ret = {
+  const struct ucsi_get_connector_status_in ret = {
     .connector_status_change = m[0],
 
     .power_operation_mode = m[0]>>16,
@@ -137,7 +137,7 @@ struct get_connector_status_in parse_connector_status_record(const struct ucsi_d
   return ret;
 }
 
-static void print_connector_status_record(const struct get_connector_status_in*restrict cs){
+static void print_connector_status_record(const struct ucsi_get_connector_status_in*restrict cs){
   DEBUG((EFI_D_WARN, "UCSI Connector Status:\n"));
   DEBUG((EFI_D_WARN, "|  Status Change:             0x%04X\n", cs->connector_status_change));
   DEBUG((EFI_D_WARN, "|  Power Operation Mode:      %d\n", (int)cs->power_operation_mode));
@@ -193,7 +193,7 @@ static void ontransactiondone(const struct ucsi_transaction* t, EFI_STATUS error
   if(cmd == UCSI_GET_CONNECTOR_STATUS){
     this->ack_required |= UCSI_ACK_CONNECTOR_CHANGE;
     BitmapClear(this->connector_changed_set, connector);
-    struct get_connector_status_in status = parse_connector_status_record(&t->message);
+    struct ucsi_get_connector_status_in status = parse_connector_status_record(&t->message);
     DEBUG((EFI_D_WARN, "\nUCSI_GET_CONNECTOR_STATUS: %d\n", connector));
     print_connector_status_record(&status);
     //hexdump(&t->message, 0x30);

@@ -29,6 +29,8 @@
   gVDP_GlinkChannelProtocolGuid
   gVDP_GlinkUcsiProtocolGuid
   gVDP_UCSIConnectorProtocolGuid
+  gUcsiOpmProtocolGuid
+  gUcsiConnectorOpmProtocolGuid
 
 [Protocols]
   gGlinkHelperProtocolGuid
