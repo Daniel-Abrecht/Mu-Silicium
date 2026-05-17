@@ -11,6 +11,7 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  QcomPkg/QcomPkg.dec
 
 [LibraryClasses]
   DebugLib
@@ -19,6 +20,7 @@
 
 [Protocols]
   gEfiDevicePathProtocolGuid
+  gEfiDependentDevices
 
 [Depex]
   TRUE

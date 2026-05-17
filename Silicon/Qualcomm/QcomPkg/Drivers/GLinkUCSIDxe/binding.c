@@ -274,24 +274,30 @@ EFI_STATUS connector_init(struct glink_ucsi* ucsi, int connector_index){
       &gEfiDevicePathProtocolGuid, child_device_path,
       NULL
     );
-    this->handle = 0;
+    connector->handle = 0;
     return Status;
   }
+
+  gBS->ConnectController(connector->handle, NULL, NULL, TRUE);
+
   return EFI_SUCCESS;
 }
 
 EFI_STATUS connectors_init(struct glink_ucsi* ucsi){
   EFI_STATUS Status;
   const int connector_count = ucsi->capability.bNumConnectors;
-  Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*ucsi->connector), (VOID**)&ucsi->connector);
-  if(EFI_ERROR(Status)){
-    DEBUG((EFI_D_ERROR, "glink ucsi: connectors_init: AllocatePool failed! Status = %r\n", Status));
-    return Status;
+  if(!ucsi->connector){
+    Status = gBS->AllocatePool(EfiBootServicesData, sizeof(*ucsi->connector)*connector_count, (VOID**)&ucsi->connector);
+    if(EFI_ERROR(Status)){
+      DEBUG((EFI_D_ERROR, "glink ucsi: connectors_init: AllocatePool failed! Status = %r\n", Status));
+      return Status;
+    }
+    gBS->SetMem(ucsi->connector, sizeof(*ucsi->connector)*connector_count, 0);
   }
   for(int i=0; i<connector_count; i++){
     Status = connector_init(ucsi, i+1);
-    if(EFI_ERROR(Status))
-      return Status;
+    if(EFI_ERROR(Status) && Status != EFI_ALREADY_STARTED)
+      DEBUG((EFI_D_ERROR, "glink ucsi: connector_init(%d) failed! Status = %r\n", i+1, Status));
   }
   return EFI_SUCCESS;
 }
@@ -306,6 +312,12 @@ EFI_STATUS connector_destroy(struct glink_ucsi* ucsi, int connector_index){
   struct ucsi_connector* connector = &ucsi->connector[connector_index-1];
   if(!connector->handle)
     return EFI_SUCCESS;
+
+  EFI_STATUS Status = gBS->DisconnectController(connector->handle, NULL, NULL);
+  if(EFI_ERROR(Status)){
+    DEBUG((EFI_D_ERROR, "glink ucsi: connector_destroy(%d): DisconnectController failed! Status = %r\n", connector_index, Status));
+    return Status;
+  }
 
   gBS->UninstallMultipleProtocolInterfaces(
     &connector->handle,
@@ -323,12 +335,19 @@ EFI_STATUS connector_destroy(struct glink_ucsi* ucsi, int connector_index){
 }
 
 EFI_STATUS connectors_destroy(struct glink_ucsi* ucsi){
+  EFI_STATUS Status;
   struct private_controller_data* this = BASE_CR(ucsi, struct private_controller_data, ucsi);
   if(!this->handle)
     return EFI_SUCCESS;
+  BOOLEAN failed_controllers = FALSE;
   unsigned connector_count = ucsi->capability.bNumConnectors;
-  for(int i=0; i<connector_count; i++)
-    connector_destroy(ucsi, i);
+  for(int i=0; i<connector_count; i++){
+    Status = connector_destroy(ucsi, i);
+    if(EFI_ERROR(Status))
+      failed_controllers = TRUE;
+  }
+  if(failed_controllers)
+    return EFI_DEVICE_ERROR;
   glink_ucsi_stop(ucsi);
   gBS->UninstallMultipleProtocolInterfaces(
     &this->handle,
@@ -386,8 +405,9 @@ static EFI_STATUS EFIAPI UCSI_BindingStop(
       connector_destroy(&this->ucsi, dp_controller_node->ControllerNumber);
     }
     return EFI_SUCCESS;
+  }else{
+    connectors_destroy(&this->ucsi);
   }
-  connectors_destroy(&this->ucsi);
   return EFI_SUCCESS;
 }
 
@@ -446,8 +466,7 @@ EFI_STATUS EFIAPI Main(
     NULL
   );
   if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "Failed to Install ULog Protocol! Status = %r\n", Status));
-    Status = -1;
+    DEBUG ((EFI_D_ERROR, "Failed to Install driver binding protocol! Status = %r\n", Status));
     goto error;
   }
 
@@ -456,5 +475,5 @@ EFI_STATUS EFIAPI Main(
 
   return EFI_SUCCESS;
 error:
-  return EFI_DEVICE_ERROR;
+  return Status;
 }

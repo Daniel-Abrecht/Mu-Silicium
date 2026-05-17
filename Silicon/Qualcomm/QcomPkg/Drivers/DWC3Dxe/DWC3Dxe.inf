@@ -1,14 +1,17 @@
 [Defines]
   INF_VERSION                    = 0x0010005
-  BASE_NAME                      = GLinkUCSIDxe
-  FILE_GUID                      = 17898854-110d-44a2-8d4f-b244496e3c71
+  BASE_NAME                      = DWC3Dxe
+  FILE_GUID                      = 0eaf4698-c005-4ef6-ae6c-7e15a25d57a3
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
   ENTRY_POINT                    = Main
 
 [Sources]
-  ucsi.c
+  init.c
   binding.c
+  binding_USBModeSwitch.c
+  binding_UCSIConnector.c
+  binding_Redriver.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -22,19 +25,14 @@
   UefiBootServicesTableLib
   BaseMemoryLib
   DevicePathLib
-  DeadlineLib
 
 [Guids]
-  gVDP_GlinkRemoteProtocolGuid
-  gVDP_GlinkChannelProtocolGuid
-  gVDP_GlinkUcsiProtocolGuid
-  gVDP_UCSIConnectorProtocolGuid
+  gVDP_DWC3ControllerProtocolGuid
 
 [Protocols]
-  gGlinkHelperProtocolGuid
   gEfiDriverBindingProtocolGuid
-  gUcsiOpmProtocolGuid
   gUcsiConnectorOpmProtocolGuid
+  gEfiDependentDevices
 
 [Depex]
   TRUE

@@ -57,6 +57,7 @@
   QcomPkg/Drivers/GlinkHelperDxe/GlinkHelperDxe.inf
   QcomPkg/Drivers/ADSPUSBCDxe/ADSPUSBCDxe.inf
   QcomPkg/Drivers/GLinkUCSIDxe/GLinkUCSIDxe.inf
+  QcomPkg/Drivers/DWC3Dxe/DWC3Dxe.inf
 
   #
   # Custom Apps

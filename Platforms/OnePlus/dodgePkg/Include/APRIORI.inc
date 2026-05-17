@@ -98,6 +98,8 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/UsbfnDwc3Dxe/UsbfnDwc3Dxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/XhciPciEmulationDxe/XhciPciEmulationDxe.inf
 
+  INF QcomPkg/Drivers/DWC3Dxe/DWC3Dxe.inf
+
   INF MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
