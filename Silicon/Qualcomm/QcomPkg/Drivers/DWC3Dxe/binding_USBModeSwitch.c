@@ -25,6 +25,12 @@ static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE 
   if(EFI_ERROR(Status))
     return Status;
 
+  struct modeswitch_device_usb_mode* host_mode = &self->modes[USB_MODE_HOST];
+  host_mode->protocol_guid = &gEdkiiNonDiscoverableDeviceProtocolGuid;
+  // host_mode->protocol = // TODO
+
+  // TODO: create self->usb_driver handle and install a device path on it.
+
   Status = gBS->OpenProtocol(
     ControllerHandle,
     &gEfiDependentDevices, (VOID**)&self->related_devices,

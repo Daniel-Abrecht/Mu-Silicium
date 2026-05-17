@@ -8,6 +8,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/DriverBinding.h>
 #include <Protocol/EFIUCSIOPM.h>
+#include <Protocol/NonDiscoverableDevice.h>
 
 struct modeswitch_device;
 
@@ -39,25 +40,35 @@ struct redriver_device {
 };
 
 enum usb_mode {
+  USB_MODE_DISCONNECTED,
   USB_MODE_HOST,
   USB_MODE_DEVICE,
+};
+enum { USB_MODE_COUNT=3 };
+
+struct modeswitch_device_usb_mode {
+  const EFI_GUID* protocol_guid;
+  void* protocol;
 };
 
 struct modeswitch_device {
   struct modeswitch_device* next;
-  EFI_HANDLE* handle;
+  EFI_HANDLE handle;
 
   EFI_DEVICE_PATH_PROTOCOL*const* related_devices;
 
   struct ucsi_device ucsi;
   struct redriver_device redriver;
 
-  enum usb_mode usb_mode;
-  EFI_HANDLE* usb_driver; // Child node, XHCI or DWC3 device mode binds to this
+  EFI_HANDLE usb_driver; // Child node, XHCI or DWC3 device mode binds to this
+  enum usb_mode mode;
+  struct modeswitch_device_usb_mode modes[USB_MODE_COUNT];
 };
 
 extern struct modeswitch_device* modeswitch_list;
 
 extern EFI_DEVICE_PATH_PROTOCOL* GetLastDevicePathNode(EFI_DEVICE_PATH_PROTOCOL* device_path);
+
+extern EFI_STATUS SwitchMode(struct modeswitch_device* self, enum usb_mode mode);
 
 #endif

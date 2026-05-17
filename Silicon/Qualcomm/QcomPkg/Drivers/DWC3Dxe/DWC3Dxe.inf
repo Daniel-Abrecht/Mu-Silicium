@@ -12,9 +12,11 @@
   binding_USBModeSwitch.c
   binding_UCSIConnector.c
   binding_Redriver.c
+  modeswitch.c
 
 [Packages]
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
   QcomPkg/QcomPkg.dec
   SiliciumPkg/SiliciumPkg.dec
 
@@ -33,6 +35,7 @@
   gEfiDriverBindingProtocolGuid
   gUcsiConnectorOpmProtocolGuid
   gEfiDependentDevices
+  gEdkiiNonDiscoverableDeviceProtocolGuid
 
 [Depex]
   TRUE
