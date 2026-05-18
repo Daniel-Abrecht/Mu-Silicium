@@ -62,7 +62,7 @@ struct modeswitch_device {
 
   EFI_HANDLE usb_driver; // Child node, XHCI or DWC3 device mode binds to this
   enum usb_mode mode;
-  struct modeswitch_device_usb_mode modes[USB_MODE_COUNT];
+  struct modeswitch_device_usb_mode modes[USB_MODE_COUNT-1];
 };
 
 extern struct modeswitch_device* modeswitch_list;

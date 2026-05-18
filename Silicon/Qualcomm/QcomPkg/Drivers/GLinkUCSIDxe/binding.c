@@ -316,12 +316,6 @@ EFI_STATUS connector_destroy(struct glink_ucsi* ucsi, int connector_index){
   if(!connector->handle)
     return EFI_SUCCESS;
 
-  gBS->CloseProtocol(
-    this->handle,
-    &gEfiDevicePathProtocolGuid,
-    this->binding_protocol->DriverBindingHandle,
-    connector->handle
-  );
   // Note: UninstallMultipleProtocolInterfaces calls DisconnectController for any of the protocols opened by a driver
   Status = gBS->UninstallMultipleProtocolInterfaces(
     &connector->handle,
@@ -333,6 +327,12 @@ EFI_STATUS connector_destroy(struct glink_ucsi* ucsi, int connector_index){
     DEBUG((EFI_D_ERROR, "glink ucsi: connector_destroy(%d): UninstallMultipleProtocolInterfaces failed! Status = %r\n", connector_index, Status));
     return Status;
   }
+  gBS->CloseProtocol(
+    this->handle,
+    &gEfiDevicePathProtocolGuid,
+    this->binding_protocol->DriverBindingHandle,
+    connector->handle
+  );
   this->handle = 0;
   return EFI_SUCCESS;
 }

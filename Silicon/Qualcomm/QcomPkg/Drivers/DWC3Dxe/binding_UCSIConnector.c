@@ -41,13 +41,14 @@ static EFI_STATUS EFIAPI UCSIConnector_Stop(
   IN UINTN NumberOfChildren,
   IN EFI_HANDLE *ChildHandleBuffer OPTIONAL
 ){
+  EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
   struct modeswitch_device* driver;
   for(driver=modeswitch_list; driver; driver=driver->next)
     if(driver->ucsi.handle == ControllerHandle)
       break;
-  if(!driver)
-    return EFI_NOT_STARTED;
-  driver->handle = 0;
+  gBS->RestoreTPL(OldTpl);
+  if(!driver) return EFI_NOT_STARTED;
+  driver->ucsi.handle = 0;
   gBS->CloseProtocol(
     ControllerHandle,
     &gUcsiConnectorOpmProtocolGuid,

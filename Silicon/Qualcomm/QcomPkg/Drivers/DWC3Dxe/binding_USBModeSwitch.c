@@ -29,7 +29,20 @@ static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE 
   host_mode->protocol_guid = &gEdkiiNonDiscoverableDeviceProtocolGuid;
   // host_mode->protocol = // TODO
 
-  // TODO: create self->usb_driver handle and install a device path on it.
+  CONTROLLER_DEVICE_PATH controller_node = {
+    .Header = {
+      .Type = HARDWARE_DEVICE_PATH,
+      .SubType = HW_CONTROLLER_DP,
+      .Length = { sizeof(CONTROLLER_DEVICE_PATH) },
+    },
+    .ControllerNumber = 1,
+  };
+  EFI_DEVICE_PATH_PROTOCOL* device_path = DevicePathFromHandle(ControllerHandle);
+  if(!device_path)
+    return Status;
+  EFI_DEVICE_PATH_PROTOCOL* child_device_path = AppendDevicePathNode(device_path, &controller_node.Header);
+  if(!child_device_path)
+    return Status;
 
   Status = gBS->OpenProtocol(
     ControllerHandle,
@@ -38,8 +51,20 @@ static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE 
     ControllerHandle,
     EFI_OPEN_PROTOCOL_GET_PROTOCOL
   );
-  if(EFI_ERROR(Status) && Status != EFI_UNSUPPORTED)
+  if(EFI_ERROR(Status) && Status != EFI_UNSUPPORTED){
+    gBS->FreePool(child_device_path);
     return Status;
+  }
+
+  Status = gBS->InstallMultipleProtocolInterfaces(
+    &self->usb_driver,
+    &gEfiDevicePathProtocolGuid, child_device_path,
+    NULL
+  );
+  if(EFI_ERROR(Status)){
+    gBS->FreePool(child_device_path);
+    return Status;
+  }
 
   for(EFI_DEVICE_PATH_PROTOCOL*const* it=self->related_devices; *it; it++){
     EFI_DEVICE_PATH_PROTOCOL* result = *it;
@@ -123,6 +148,44 @@ static EFI_STATUS EFIAPI USBModeSwitch_Stop(
   IN UINTN NumberOfChildren,
   IN EFI_HANDLE *ChildHandleBuffer OPTIONAL
 ){
+  EFI_STATUS Status;
+  struct modeswitch_device* self;
+  {
+    EFI_TPL OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
+    struct modeswitch_device** pit;
+    for(pit=&modeswitch_list; (self=*pit); pit=&(*pit)->next)
+      if(self->handle == ControllerHandle)
+        break;
+    if(self) *pit = self->next;
+    gBS->RestoreTPL(OldTpl);
+    if(!self) return EFI_SUCCESS;
+  }
+  if(self->ucsi.handle){
+    Status = UCSIConnector_binding_protocol.super.Stop(&UCSIConnector_binding_protocol.super, self->ucsi.handle, 0, NULL);
+    if(EFI_ERROR(Status))
+      DEBUG((EFI_D_ERROR, "DWC3Dxe: USBModeSwitch_Stop: UCSIConnector_binding_protocol::Stop failed! Status = %r\n", Status));
+  }
+  if(self->redriver.handle){
+    Status = Redriver_binding_protocol.super.Stop(&Redriver_binding_protocol.super, self->redriver.handle, 0, NULL);
+    if(EFI_ERROR(Status))
+      DEBUG((EFI_D_ERROR, "DWC3Dxe: USBModeSwitch_Stop: Redriver_binding_protocol::Stop failed! Status = %r\n", Status));
+  }
+  SwitchMode(self, USB_MODE_DISCONNECTED);
+  EFI_HANDLE usb_driver = self->usb_driver;
+  self->usb_driver = 0;
+  EFI_DEVICE_PATH_PROTOCOL* child_device_path = DevicePathFromHandle(ControllerHandle);
+  if(child_device_path){
+    Status = gBS->UninstallMultipleProtocolInterfaces(
+      &usb_driver,
+      &gEfiDevicePathProtocolGuid, child_device_path,
+      NULL
+    );
+    if(EFI_ERROR(Status))
+      return Status;
+    gBS->FreePool(child_device_path);
+  }
+  if(!self->ucsi.handle && !self->redriver.handle)
+    gBS->FreePool(self);
   return EFI_SUCCESS;
 }
 
