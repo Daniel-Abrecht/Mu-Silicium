@@ -372,6 +372,8 @@
   ArmPkg/Drivers/TimerDxe/TimerDxe.inf
 !endif
 
+  ArmPkg/Drivers/SmmuDxe/SmmuDxe.inf
+
   # Runtime Services
   MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
   EmbeddedPkg/SimpleTextInOutSerial/SimpleTextInOutSerial.inf
@@ -400,6 +402,7 @@
   MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
   MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
   MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
+  MdeModulePkg/Bus/Pci/NonDiscoverablePciDeviceDxe/NonDiscoverablePciDeviceDxe.inf
 
   # ACPI
   MdeModulePkg/Universal/Acpi/AcpiPlatformDxe/AcpiPlatformDxe.inf

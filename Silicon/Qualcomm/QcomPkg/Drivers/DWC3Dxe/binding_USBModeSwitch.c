@@ -18,6 +18,12 @@ static EFI_STATUS insert_device(struct modeswitch_device** pit, struct modeswitc
   return EFI_SUCCESS;
 }
 
+EFI_STATUS EFIAPI NDevInit(NON_DISCOVERABLE_DEVICE* self){
+  DEBUG((EFI_D_WARN, "\nNDevInit\n\n"));
+  // gBS->Stall(10000000);
+  return EFI_SUCCESS;
+}
+
 static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE ControllerHandle){
   EFI_STATUS Status = 0;
   self->handle = ControllerHandle;
@@ -25,9 +31,30 @@ static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE 
   if(EFI_ERROR(Status))
     return Status;
 
-  struct modeswitch_device_usb_mode* host_mode = &self->modes[USB_MODE_HOST];
+  struct modeswitch_device_usb_mode* host_mode = &self->modes[USB_MODE_HOST-1];
   host_mode->protocol_guid = &gEdkiiNonDiscoverableDeviceProtocolGuid;
-  // host_mode->protocol = // TODO
+  {
+    // TODO: get these values from ACPI or something
+    UINTN Base = 0xA600000;
+    UINTN Size = 0x8000;
+    self->xhci.protocol = (NON_DISCOVERABLE_DEVICE){
+      .Type = &gEdkiiNonDiscoverableXhciDeviceGuid,
+      .DmaType = NonDiscoverableDeviceDmaTypeCoherent,
+      .Resources = self->xhci.resources,
+      .Initialize = NDevInit,
+    };
+    self->xhci.protocol.Resources[0] = (EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR){
+      .Desc                  = ACPI_ADDRESS_SPACE_DESCRIPTOR,
+      .Len                   = sizeof(EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR) - 3,
+      .AddrRangeMin          = Base,
+      .AddrLen               = Size,
+      .AddrRangeMax          = Base + Size - 1,
+      .ResType               = ACPI_ADDRESS_SPACE_TYPE_MEM,
+      .AddrSpaceGranularity  = ((EFI_PHYSICAL_ADDRESS)Base + Size > SIZE_4GB) ? 64 : 32,
+      .AddrTranslationOffset = 0,
+    };
+    host_mode->protocol = &self->xhci.protocol;
+  }
 
   CONTROLLER_DEVICE_PATH controller_node = {
     .Header = {
@@ -85,8 +112,12 @@ static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE 
     }
   }
 
-  // DEBUG((EFI_D_WARN, "USBModeSwitch_Init done\n"));
+  DEBUG((EFI_D_WARN, "SwitchMode USB_MODE_HOST\n"));
+  Status = SwitchMode(self, USB_MODE_HOST);
+  DEBUG((EFI_D_WARN, "SwitchMode USB_MODE_HOST: %r\n", Status));
   // gBS->Stall(10000000);
+
+  // DEBUG((EFI_D_WARN, "USBModeSwitch_Init done\n"));
   return EFI_SUCCESS;
 }
 
@@ -119,6 +150,7 @@ static EFI_STATUS EFIAPI USBModeSwitch_SupportedStart(
     return Status;
   }
   gBS->SetMem(self, sizeof(*self), 0);
+  self->xhci.resources_end.Desc = ACPI_END_TAG_DESCRIPTOR;
 
   Status = USBModeSwitch_Init(self, ControllerHandle);
   if(EFI_ERROR(Status))

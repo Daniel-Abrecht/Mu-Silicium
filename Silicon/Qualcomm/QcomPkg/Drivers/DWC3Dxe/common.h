@@ -9,6 +9,7 @@
 #include <Protocol/DriverBinding.h>
 #include <Protocol/EFIUCSIOPM.h>
 #include <Protocol/NonDiscoverableDevice.h>
+#include <IndustryStandard/Acpi.h>
 
 struct modeswitch_device;
 
@@ -51,6 +52,18 @@ struct modeswitch_device_usb_mode {
   void* protocol;
 };
 
+struct xhci_data {
+  NON_DISCOVERABLE_DEVICE protocol;
+  struct {
+    EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR resources[1];
+    EFI_ACPI_END_TAG_DESCRIPTOR resources_end; // .Desc=ACPI_END_TAG_DESCRIPTOR
+  };
+};
+STATIC_ASSERT(
+  OFFSET_OF(struct xhci_data, resources) + sizeof(EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR)*1 == OFFSET_OF(struct xhci_data, resources_end),
+  "The Compiler has inserted padding between the EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR and EFI_ACPI_END_TAG_DESCRIPTOR!"
+);
+
 struct modeswitch_device {
   struct modeswitch_device* next;
   EFI_HANDLE handle;
@@ -63,6 +76,8 @@ struct modeswitch_device {
   EFI_HANDLE usb_driver; // Child node, XHCI or DWC3 device mode binds to this
   enum usb_mode mode;
   struct modeswitch_device_usb_mode modes[USB_MODE_COUNT-1];
+
+  struct xhci_data xhci;
 };
 
 extern struct modeswitch_device* modeswitch_list;

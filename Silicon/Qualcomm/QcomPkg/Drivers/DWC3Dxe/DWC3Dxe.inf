@@ -30,6 +30,7 @@
 
 [Guids]
   gVDP_DWC3ControllerProtocolGuid
+  gEdkiiNonDiscoverableXhciDeviceGuid
 
 [Protocols]
   gEfiDriverBindingProtocolGuid

@@ -29,6 +29,7 @@
 
   INF ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
   INF ArmPkg/Drivers/TimerDxe/TimerDxe.inf
+  INF ArmPkg/Drivers/SmmuDxe/SmmuDxe.inf
 
   INF Binaries/dodge/QcomPkg/Drivers/ChipInfoDxe/ChipInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PlatformInfoDxe/PlatformInfoDxe.inf
@@ -103,22 +104,23 @@
   INF QcomPkg/Drivers/GLinkUCSIDxe/GLinkUCSIDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/QcomChargerDxe/QcomChargerDxeLA.inf
   INF Binaries/dodge/QcomPkg/Drivers/OplusVibrDxe/OplusVibrDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/UsbPwrCtrlDxe/UsbPwrCtrlDxe.inf
+#  INF Binaries/dodge/QcomPkg/Drivers/UsbPwrCtrlDxe/UsbPwrCtrlDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/TsensDxe/TsensDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/DDRInfoDxe/DDRInfoDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/UsbfnDwc3Dxe/UsbfnDwc3Dxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/XhciPciEmulationDxe/XhciPciEmulationDxe.inf
-
-  INF QcomPkg/Drivers/DWC3Dxe/DWC3Dxe.inf
+#  INF Binaries/dodge/QcomPkg/Drivers/UsbfnDwc3Dxe/UsbfnDwc3Dxe.inf
+#  INF Binaries/dodge/QcomPkg/Drivers/XhciPciEmulationDxe/XhciPciEmulationDxe.inf
 
   INF MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
+  INF MdeModulePkg/Bus/Pci/NonDiscoverablePciDeviceDxe/NonDiscoverablePciDeviceDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbKbDxe/UsbKbDxe.inf
   INF MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
 
+  INF QcomPkg/Drivers/DWC3Dxe/DWC3Dxe.inf
+
   INF Binaries/dodge/QcomPkg/Drivers/UsbMsdDxe/UsbMsdDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/UsbDeviceDxe/UsbDeviceDxe.inf
-  INF Binaries/dodge/QcomPkg/Drivers/UsbConfigDxe/UsbConfigDxe.inf
+#  INF Binaries/dodge/QcomPkg/Drivers/UsbDeviceDxe/UsbDeviceDxe.inf
+#  INF Binaries/dodge/QcomPkg/Drivers/UsbConfigDxe/UsbConfigDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/UsbInitDxe/UsbInitDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/UCDxe/UCDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/RNGDxe/RngDxe.inf

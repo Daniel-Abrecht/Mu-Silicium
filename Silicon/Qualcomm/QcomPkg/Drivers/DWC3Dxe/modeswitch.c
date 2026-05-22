@@ -56,6 +56,7 @@ static EFI_STATUS Start(struct modeswitch_device* self, enum usb_mode new_mode){
     return Status;
   }
   self->mode = new_mode;
+  gBS->ConnectController(self->usb_driver, NULL, NULL, TRUE);
   return EFI_SUCCESS;
 }
 
