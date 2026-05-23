@@ -209,7 +209,11 @@
   PcdDatabaseLoaderLib|MdeModulePkg/Library/PcdDatabaseLoaderLib/Dxe/PcdDatabaseLoaderLibDxe.inf
   ExtractGuidedSectionLib|EmbeddedPkg/Library/PrePiExtractGuidedSectionLib/PrePiExtractGuidedSectionLib.inf
   DmaLib|EmbeddedPkg/Library/CoherentDmaLib/CoherentDmaLib.inf
+!if $(REQUIRE_IOMMU) == TRUE
   IoMmuLib|MdeModulePkg/Library/IoMmuLib/IoMmuLib.inf
+!else
+  IoMmuLib|MdeModulePkg/Library/IoMmuLibNull/IoMmuLibNull.inf
+!endif
   DeadlineLib|SiliciumPkg/Library/DeadlineLib/DeadlineLib.inf
 
   #
@@ -371,8 +375,6 @@
 !if $(USE_CUSTOM_TIMER) == 0
   ArmPkg/Drivers/TimerDxe/TimerDxe.inf
 !endif
-
-  ArmPkg/Drivers/SmmuDxe/SmmuDxe.inf
 
   # Runtime Services
   MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf

@@ -20,7 +20,7 @@ static EFI_STATUS insert_device(struct modeswitch_device** pit, struct modeswitc
 
 EFI_STATUS EFIAPI NDevInit(NON_DISCOVERABLE_DEVICE* self){
   DEBUG((EFI_D_WARN, "\nNDevInit\n\n"));
-  // gBS->Stall(10000000);
+  gBS->Stall(10000000);
   return EFI_SUCCESS;
 }
 
@@ -115,7 +115,7 @@ static EFI_STATUS USBModeSwitch_Init(struct modeswitch_device* self, EFI_HANDLE 
   DEBUG((EFI_D_WARN, "SwitchMode USB_MODE_HOST\n"));
   Status = SwitchMode(self, USB_MODE_HOST);
   DEBUG((EFI_D_WARN, "SwitchMode USB_MODE_HOST: %r\n", Status));
-  // gBS->Stall(10000000);
+  gBS->Stall(10000000);
 
   // DEBUG((EFI_D_WARN, "USBModeSwitch_Init done\n"));
   return EFI_SUCCESS;
