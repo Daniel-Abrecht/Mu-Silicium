@@ -34,6 +34,7 @@
   INF Binaries/dodge/QcomPkg/Drivers/PlatformInfoDxe/PlatformInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/DALSYSDxe/DALSYSDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/HALIOMMUDxe/HALIOMMUDxe.inf
+  INF QcomPkg/Drivers/IOMMUWrapperDxe/IOMMUWrapperDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/HWIODxe/HWIODxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/HSUartDxe/HSUartDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/I2CDxe/I2CDxe.inf

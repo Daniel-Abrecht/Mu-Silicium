@@ -44,6 +44,9 @@ EFI_STATUS EFIAPI Main(
     }    
   }
 
+  void phy_init_test(void);
+  phy_init_test();
+
   ProbeAllDevicePaths((EFI_HANDLE[]){USBModeSwitch_binding_protocol.super.DriverBindingHandle, 0});
 
   return EFI_SUCCESS;

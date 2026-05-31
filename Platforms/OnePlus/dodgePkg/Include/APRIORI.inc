@@ -26,6 +26,7 @@ APRIORI DXE {
   INF Binaries/dodge/QcomPkg/Drivers/ChipInfoDxe/ChipInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/PlatformInfoDxe/PlatformInfoDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/HALIOMMUDxe/HALIOMMUDxe.inf
+  INF QcomPkg/Drivers/IOMMUWrapperDxe/IOMMUWrapperDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/ULogDxe/ULogDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/IPCCDxe/IPCCDxe.inf
   INF Binaries/dodge/QcomPkg/Drivers/CmdDbDxe/CmdDbDxe.inf

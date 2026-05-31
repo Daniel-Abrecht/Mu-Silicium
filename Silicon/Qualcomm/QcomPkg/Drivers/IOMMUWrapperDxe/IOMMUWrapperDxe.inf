@@ -1,0 +1,28 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = IOMMUDxe
+  FILE_GUID                      = 696d1205-ab70-41d1-b7e6-f3135433e3ac
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = EntryPoint
+
+[Sources]
+  IOMMUWrapperDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  QcomPkg/QcomPkg.dec
+  SiliciumPkg/SiliciumPkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gEdkiiIoMmuProtocolGuid
+
+[Depex]
+  TRUE

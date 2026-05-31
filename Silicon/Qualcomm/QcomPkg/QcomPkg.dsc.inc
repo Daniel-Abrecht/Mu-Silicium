@@ -51,6 +51,7 @@
   #
   # Custom Drivers
   #
+  QcomPkg/Drivers/IOMMUWrapperDxe/IOMMUWrapperDxe.inf
   QcomPkg/Drivers/DynamicRamDxe/DynamicRamDxe.inf
   QcomPkg/Drivers/DisplayReEnablerDxe/DisplayReEnablerDxe.inf
   QcomPkg/Drivers/PeripheralInitDxe/PeripheralInitDxe.inf

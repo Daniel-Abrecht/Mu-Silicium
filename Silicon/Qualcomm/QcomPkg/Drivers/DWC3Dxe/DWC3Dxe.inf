@@ -13,6 +13,8 @@
   binding_UCSIConnector.c
   binding_Redriver.c
   modeswitch.c
+  PhyPowerWrapper.c
+  QcomQmpComboPhyV8.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -27,6 +29,7 @@
   UefiBootServicesTableLib
   BaseMemoryLib
   DevicePathLib
+  IoLib
 
 [Guids]
   gVDP_DWC3ControllerProtocolGuid
@@ -37,6 +40,8 @@
   gUcsiConnectorOpmProtocolGuid
   gEfiDependentDevices
   gEdkiiNonDiscoverableDeviceProtocolGuid
+  gEfiClockProtocolGuid
+  gEfiNpaProtocolGuid
 
 [Depex]
   TRUE
